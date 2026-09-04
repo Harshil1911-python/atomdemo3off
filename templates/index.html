@@ -831,7 +831,7 @@ const fmt=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 const COLORS=['#dbeafe','#dcfce7','#fef3c7','#fce7f3','#e0e7ff','#ffedd5','#f3e8ff','#ecfdf5'];
 let db,_dlgResolve=null;
 
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('AtomBills',3);r.onupgradeneeded=e=>{const d=e.target.result;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('AtomBills',4);r.onupgradeneeded=e=>{const d=e.target.result;
   if(!d.objectStoreNames.contains('products')){const s=d.createObjectStore('products',{keyPath:'id',autoIncrement:true});s.createIndex('name','name')}
   if(!d.objectStoreNames.contains('transactions'))d.createObjectStore('transactions',{keyPath:'id'});
   if(!d.objectStoreNames.contains('held'))d.createObjectStore('held',{keyPath:'id',autoIncrement:true});
@@ -844,12 +844,88 @@ function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('AtomBil
   if(!d.objectStoreNames.contains('quotations'))d.createObjectStore('quotations',{keyPath:'id',autoIncrement:true});
   if(!d.objectStoreNames.contains('pricelists'))d.createObjectStore('pricelists',{keyPath:'id',autoIncrement:true});
   if(!d.objectStoreNames.contains('inventoryLogs'))d.createObjectStore('inventoryLogs',{keyPath:'id',autoIncrement:true});
+  if(!d.objectStoreNames.contains('syncQueue'))d.createObjectStore('syncQueue',{keyPath:'id',autoIncrement:true});
+  if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'key'});
 };r.onsuccess=e=>{db=e.target.result;res(db)};r.onerror=e=>rej(e.target.error)})}
 const all=s=>new Promise((res,rej)=>{const t=db.transaction(s,'readonly').objectStore(s).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
-const put=(s,d)=>new Promise((res,rej)=>{const t=db.transaction(s,'readwrite').objectStore(s).put(d);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
+const _putRaw=(s,d)=>new Promise((res,rej)=>{const t=db.transaction(s,'readwrite').objectStore(s).put(d);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
+const TRACK_STORES=['products','transactions','parties','purchases','finance','inventoryLogs','held','coupons','suppliers','quotations','pricelists'];
+const put=async(s,d)=>{const id=await _putRaw(s,d);if(TRACK_STORES.includes(s)&&typeof enqueueSync==='function'){try{enqueueSync('put',s,{id:d&&d.id!=null?d.id:id});}catch(e){}}return id;};
 const del=(s,id)=>new Promise((res,rej)=>{const t=db.transaction(s,'readwrite').objectStore(s).delete(id);t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
 const clearStore=s=>new Promise((res,rej)=>{const t=db.transaction(s,'readwrite').objectStore(s).clear();t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
 const getById=(s,id)=>new Promise((res,rej)=>{const t=db.transaction(s,'readonly').objectStore(s).get(id);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
+
+/* ===== Offline-first: sync queue + status (server only on explicit Sync) ===== */
+async function enqueueSync(action, store, payload){
+  try{
+    if(!db) await openDB();
+    await put('syncQueue', {action, store, payload, at: new Date().toISOString(), status:'pending'});
+    updateOfflineBadge();
+  }catch(e){ console.warn('enqueueSync', e); }
+}
+async function getPendingSyncCount(){
+  try{
+    if(!db) await openDB();
+    const list = await all('syncQueue');
+    return (list||[]).filter(x => x.status!=='done').length;
+  }catch(e){ return 0; }
+}
+async function runExplicitSync(){
+  /* Core POS never needs server. This only processes local queue + optional future endpoint. */
+  try{
+    if(!db) await openDB();
+    const list = await all('syncQueue');
+    const pending = (list||[]).filter(x => x.status!=='done');
+    if(!pending.length){ toast('Nothing to sync — all local'); updateOfflineBadge(); return {ok:true, n:0}; }
+    // Mark as synced locally (no server required). When you add a real API, POST here.
+    for(const item of pending){
+      item.status = 'done';
+      item.syncedAt = new Date().toISOString();
+      await put('syncQueue', item);
+    }
+    await put('meta', {key:'lastSync', at: new Date().toISOString(), count: pending.length});
+    toast('Synced '+pending.length+' change(s) locally');
+    updateOfflineBadge();
+    return {ok:true, n:pending.length};
+  }catch(e){
+    toast('Sync failed — data safe offline');
+    return {ok:false, error:String(e)};
+  }
+}
+async function checkOfflineReady(){
+  const need = ['/','/static/icon-192.png','/static/icon-512.png','/manifest.webmanifest','/sw.js'];
+  let missing = [];
+  if('caches' in window){
+    try{
+      const keys = await caches.keys();
+      const cache = keys.length ? await caches.open(keys.sort().reverse()[0]) : null;
+      if(cache){
+        for(const u of need){
+          const hit = await cache.match(u);
+          if(!hit) missing.push(u);
+        }
+      } else missing = need.slice();
+    }catch(e){ missing = need.slice(); }
+  } else missing = need.slice();
+  const pending = await getPendingSyncCount();
+  const ready = missing.length === 0;
+  return {ready, missing, pending, online: navigator.onLine};
+}
+function updateOfflineBadge(){
+  checkOfflineReady().then(st => {
+    document.querySelectorAll('.offline-badge').forEach(el => {
+      if(st.ready){
+        el.textContent = st.pending ? ('Offline · '+st.pending+' pending') : 'Offline-ready';
+        el.className = 'offline-badge ok';
+      } else {
+        el.textContent = 'Caching… open once online';
+        el.className = 'offline-badge warn';
+      }
+    });
+  }).catch(()=>{});
+}
+// Wrap put to auto-queue important stores (non-breaking)
+
 
 function productIcon(p){
   if(p&&p.photo)return '<img src="'+p.photo+'" alt="" loading="lazy">';
@@ -933,7 +1009,9 @@ function initShell(root){
 }
 
 function panelLinks(active){
-  return '<div class="install-banner"><p>Install for offline use</p><button type="button" class="btn-install-pwa">Install App</button><p style="margin-top:8px;font-size:11px;opacity:.9;font-weight:500">Chrome: menu → Install app · iOS: Share → Add to Home Screen · Needs HTTPS</p></div>'+
+  return '<div class="offline-badge">Checking offline…</div>'+
+'<div class="install-banner"><p>Install for offline use</p><button type="button" class="btn-install-pwa">Install App</button><p style="margin-top:8px;font-size:11px;opacity:.9;font-weight:500">Chrome: menu → Install app · iOS: Share → Add to Home Screen · Needs HTTPS</p></div>'+
+'<button type="button" class="dr-link btn-sync-now" style="margin-bottom:8px;background:#ecfdf5;color:#059669;font-weight:700">↻ Sync / Update (optional)</button>'+
 '<div class="panel-group"><button type="button" class="panel-toggle btn-change-panel">'+
 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'+
 'Change Panel<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg></button>'+
@@ -1034,6 +1112,24 @@ async function sharePngDataUrl(dataUrl,filename){
   }catch(e){}
   const a=document.createElement('a');a.href=dataUrl;a.download=filename||'invoice.png';a.click();return false;
 }
+
+async function putTracked(store, data){
+  const id = await put(store, data);
+  if(['products','transactions','parties','purchases','finance','inventoryLogs','held','coupons','suppliers','quotations','pricelists'].includes(store)){
+    enqueueSync('put', store, {id: data.id || id, data});
+  }
+  return id;
+}
+
+document.addEventListener('click', function(e){
+  const s = e.target.closest && e.target.closest('.btn-sync-now');
+  if(!s) return;
+  e.preventDefault();
+  if(typeof runExplicitSync==='function') runExplicitSync();
+}, true);
+document.addEventListener('DOMContentLoaded', function(){ if(typeof updateOfflineBadge==='function') updateOfflineBadge(); });
+window.addEventListener('online', function(){ if(typeof updateOfflineBadge==='function') updateOfflineBadge(); });
+window.addEventListener('offline', function(){ if(typeof updateOfflineBadge==='function') updateOfflineBadge(); });
 
 </script>
 <script>
@@ -2357,6 +2453,7 @@ document.addEventListener('keydown',e=>{
   var start=['billing','proprietor','accountant','calculator'].indexOf(p0)>=0?p0:'billing';
   window.__panelInited.billing=true;
   try{window.__panelInit.billing()}catch(e){console.error(e)}
+  try{if(typeof updateOfflineBadge==='function')setTimeout(updateOfflineBadge,500)}catch(e){}
   if(start!=='billing') showPanel(start);
   else try{history.replaceState({panel:'billing'},'',location.pathname||'/')}catch(e){}
 })();

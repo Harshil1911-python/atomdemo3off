@@ -1,5 +1,5 @@
-/* Atom Bills — offline-first PWA */
-const VER = 'atom-bills-offline-v26';
+/* Atom Bills — offline-first (cache always wins; Render only if cache miss) */
+const VER = 'atom-bills-offline-v27';
 const ASSETS = [
   '/',
   '/?source=pwa',
@@ -41,27 +41,39 @@ self.addEventListener('activate', e => {
   );
 });
 
-// OFFLINE-FIRST: always prefer cache when present (even with internet)
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (e.data && e.data.type === 'CACHE_STATUS') {
+    caches.open(VER).then(c => c.keys()).then(keys => {
+      e.ports && e.ports[0] && e.ports[0].postMessage({ count: keys.length, ver: VER });
+    });
+  }
+});
+
+// CACHE-FIRST always — Wi‑Fi ON does not force network for app shell
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-
   const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) return; // leave CDN alone
 
-  const path = url.pathname;
+  // Never cache API — but this app has no required APIs
+  if (url.pathname.startsWith('/api/')) {
+    e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ offline: true }), { headers: { 'Content-Type': 'application/json' } })));
+    return;
+  }
+
   const isNav = e.request.mode === 'navigate' ||
-    path === '/' || path === '/billing' || path === '/proprietor' ||
-    path === '/calculator' || path === '/accountant';
+    ['/', '/billing', '/proprietor', '/calculator', '/accountant'].includes(url.pathname);
 
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) {
-        // revalidate in background (stale-while-revalidate)
-        fetch(e.request).then(r => {
-          if (r && r.ok) {
-            caches.open(VER).then(c => c.put(e.request, r.clone()));
-          }
-        }).catch(() => {});
+        // Background refresh only for shell updates (optional); do not block UI
+        if (!isNav) {
+          fetch(e.request).then(r => {
+            if (r && r.ok) caches.open(VER).then(c => c.put(e.request, r.clone()));
+          }).catch(() => {});
+        }
         return cached;
       }
       return fetch(e.request).then(r => {
@@ -69,15 +81,19 @@ self.addEventListener('fetch', e => {
           const clone = r.clone();
           caches.open(VER).then(c => {
             c.put(e.request, clone);
-            if (isNav) c.put('/', r.clone()).catch(() => {});
+            if (isNav) {
+              c.put('/', r.clone()).catch(() => {});
+              c.put('/?source=pwa', r.clone()).catch(() => {});
+            }
           });
         }
         return r;
       }).catch(() => {
         if (isNav) {
-          return caches.match('/') || caches.match('/billing') || caches.match('/?source=pwa');
+          return caches.match('/') || caches.match('/?source=pwa') || caches.match('/billing') ||
+            new Response('<h1>Offline</h1><p>Open once online to cache the app.</p>', { headers: { 'Content-Type': 'text/html' } });
         }
-        return caches.match(e.request);
+        return new Response('', { status: 503, statusText: 'Offline' });
       });
     })
   );
