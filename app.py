@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, send_from_directory, make_response
+from flask import Flask, render_template, jsonify, send_from_directory
 import os
 
 app = Flask(__name__)
@@ -8,13 +8,10 @@ def _headers(resp):
     ct = resp.content_type or ""
     if "text/html" in ct:
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    elif "javascript" in ct and "sw.js" in (resp.headers.get("Content-Disposition") or resp.direct_passthrough and "" or ""):
-        pass
     return resp
 
 
 def spa():
-    """Single-page app — all UI panels live in index.html."""
     return render_template("index.html")
 
 
@@ -35,14 +32,14 @@ def health():
 @app.route("/manifest.webmanifest")
 def manifest():
     r = send_from_directory("static", "manifest.webmanifest", mimetype="application/manifest+json")
-    r.headers["Cache-Control"] = "public, max-age=3600"
+    r.headers["Cache-Control"] = "no-cache"
+    r.headers["Content-Type"] = "application/manifest+json"
     return r
 
 
 @app.route("/sw.js")
 def service_worker():
     r = send_from_directory("static", "sw.js", mimetype="application/javascript")
-    # SW must revalidate so updates install
     r.headers["Cache-Control"] = "no-cache, max-age=0"
     r.headers["Service-Worker-Allowed"] = "/"
     return r

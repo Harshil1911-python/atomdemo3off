@@ -106,7 +106,7 @@ function initShell(root){
 }
 
 function panelLinks(active){
-  return '<div class="install-banner"><p>Install Atom Bills</p><button type="button" class="btn-install-pwa">Add to Home Screen</button></div>'+
+  return '<div class="install-banner"><p>Install for offline use</p><button type="button" class="btn-install-pwa">Install App</button><p style="margin-top:8px;font-size:11px;opacity:.9;font-weight:500">Chrome: menu → Install app · iOS: Share → Add to Home Screen · Needs HTTPS</p></div>'++
 '<div class="panel-group"><button type="button" class="panel-toggle btn-change-panel">'+
 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'+
 'Change Panel<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg></button>'+

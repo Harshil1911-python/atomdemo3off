@@ -1,7 +1,8 @@
-/* Atom Bills SPA — full offline */
-const VER = 'atom-bills-offline-v25';
+/* Atom Bills — offline-first PWA */
+const VER = 'atom-bills-offline-v26';
 const ASSETS = [
   '/',
+  '/?source=pwa',
   '/billing',
   '/proprietor',
   '/calculator',
@@ -15,6 +16,8 @@ const ASSETS = [
   '/manifest.webmanifest',
   '/static/icon-192.png',
   '/static/icon-512.png',
+  '/static/icon-192-maskable.png',
+  '/static/icon-512-maskable.png',
   '/static/logo.png',
   '/static/logo-white.png',
   '/static/logo-header.png',
@@ -38,70 +41,44 @@ self.addEventListener('activate', e => {
   );
 });
 
+// OFFLINE-FIRST: always prefer cache when present (even with internet)
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
 
   const url = new URL(e.request.url);
-  // only same-origin
-  if (url.origin !== self.location.origin) {
-    // try network for CDN (sheetjs); offline will fail gracefully
-    return;
-  }
+  if (url.origin !== self.location.origin) return;
 
   const path = url.pathname;
-  const isStatic = path.startsWith('/static/') || path === '/sw.js' ||
-    path.includes('manifest') || path.includes('icon') || path.includes('logo') || path.includes('beep');
   const isNav = e.request.mode === 'navigate' ||
     path === '/' || path === '/billing' || path === '/proprietor' ||
     path === '/calculator' || path === '/accountant';
 
-  // Static: cache-first
-  if (isStatic) {
-    e.respondWith(
-      caches.match(e.request).then(cached => {
-        if (cached) return cached;
-        return fetch(e.request).then(r => {
-          if (r && r.ok) {
-            const clone = r.clone();
-            caches.open(VER).then(c => c.put(e.request, clone));
-          }
-          return r;
-        }).catch(() => caches.match(e.request));
-      })
-    );
-    return;
-  }
-
-  // Navigation / HTML: network-first, fall back to any cached SPA shell
-  if (isNav) {
-    e.respondWith(
-      fetch(e.request)
-        .then(r => {
-          if (r && r.ok) {
-            const clone = r.clone();
-            caches.open(VER).then(c => {
-              c.put(e.request, clone);
-              c.put('/', r.clone()).catch(() => {});
-            });
-          }
-          return r;
-        })
-        .catch(() =>
-          caches.match(e.request)
-            .then(c => c || caches.match('/') || caches.match('/billing'))
-        )
-    );
-    return;
-  }
-
-  // Default: cache-first then network
   e.respondWith(
-    caches.match(e.request).then(c => c || fetch(e.request).then(r => {
-      if (r && r.ok) {
-        const clone = r.clone();
-        caches.open(VER).then(cache => cache.put(e.request, clone));
+    caches.match(e.request).then(cached => {
+      if (cached) {
+        // revalidate in background (stale-while-revalidate)
+        fetch(e.request).then(r => {
+          if (r && r.ok) {
+            caches.open(VER).then(c => c.put(e.request, r.clone()));
+          }
+        }).catch(() => {});
+        return cached;
       }
-      return r;
-    }).catch(() => caches.match('/')))
+      return fetch(e.request).then(r => {
+        if (r && r.ok) {
+          const clone = r.clone();
+          caches.open(VER).then(c => {
+            c.put(e.request, clone);
+            if (isNav) c.put('/', r.clone()).catch(() => {});
+          });
+        }
+        return r;
+      }).catch(() => {
+        if (isNav) {
+          return caches.match('/') || caches.match('/billing') || caches.match('/?source=pwa');
+        }
+        return caches.match(e.request);
+      });
+    })
   );
 });
