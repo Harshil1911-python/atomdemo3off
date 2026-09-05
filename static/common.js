@@ -4,67 +4,79 @@ const fmt=n=>'₹'+Number(n||0).toLocaleString('en-IN');
 const COLORS=['#dbeafe','#dcfce7','#fef3c7','#fce7f3','#e0e7ff','#ffedd5','#f3e8ff','#ecfdf5'];
 let db,_dlgResolve=null;
 
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('AtomBills',4);r.onupgradeneeded=e=>{const d=e.target.result;
-  if(!d.objectStoreNames.contains('products')){const s=d.createObjectStore('products',{keyPath:'id',autoIncrement:true});s.createIndex('name','name')}
-  if(!d.objectStoreNames.contains('transactions'))d.createObjectStore('transactions',{keyPath:'id'});
-  if(!d.objectStoreNames.contains('held'))d.createObjectStore('held',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('variants')){const s=d.createObjectStore('variants',{keyPath:'id',autoIncrement:true});s.createIndex('productId','productId')}
-  if(!d.objectStoreNames.contains('purchases'))d.createObjectStore('purchases',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('finance'))d.createObjectStore('finance',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('suppliers'))d.createObjectStore('suppliers',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('coupons'))d.createObjectStore('coupons',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('parties'))d.createObjectStore('parties',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('quotations'))d.createObjectStore('quotations',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('pricelists'))d.createObjectStore('pricelists',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('inventoryLogs'))d.createObjectStore('inventoryLogs',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('syncQueue'))d.createObjectStore('syncQueue',{keyPath:'id',autoIncrement:true});
-  if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'key'});
-};r.onsuccess=e=>{db=e.target.result;res(db)};r.onerror=e=>rej(e.target.error)})}
-const all=s=>new Promise((res,rej)=>{const t=db.transaction(s,'readonly').objectStore(s).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
-const _putRaw=(s,d)=>new Promise((res,rej)=>{const t=db.transaction(s,'readwrite').objectStore(s).put(d);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
-const TRACK_STORES=['products','transactions','parties','purchases','finance','inventoryLogs','held','coupons','suppliers','quotations','pricelists'];
-const put=async(s,d)=>{const id=await _putRaw(s,d);if(TRACK_STORES.includes(s)&&typeof enqueueSync==='function'){try{enqueueSync('put',s,{id:d&&d.id!=null?d.id:id});}catch(e){}}return id;};
-const del=(s,id)=>new Promise((res,rej)=>{const t=db.transaction(s,'readwrite').objectStore(s).delete(id);t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
-const clearStore=s=>new Promise((res,rej)=>{const t=db.transaction(s,'readwrite').objectStore(s).clear();t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
-const getById=(s,id)=>new Promise((res,rej)=>{const t=db.transaction(s,'readonly').objectStore(s).get(id);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
+const IDB_NAME='AtomBills';
+const IDB_VERSION=5;
+const STORES_STRICT=['products','categories','customers','suppliers','sales','saleItems','purchases','purchaseItems','payments','expenses','stockMovements','returns','heldBills','users','settings','auditLogs','coupons','quotations','pricelists'];
+const STORE_ALIAS={
+  transactions:'sales', parties:'customers', held:'heldBills', inventoryLogs:'stockMovements',
+  finance:'expenses', meta:'settings', syncQueue:null
+};
+function resolveStore(s){return STORE_ALIAS.hasOwnProperty(s)?STORE_ALIAS[s]:s}
 
-/* ===== Offline-first: sync queue + status (server only on explicit Sync) ===== */
-async function enqueueSync(action, store, payload){
-  try{
-    if(!db) await openDB();
-    await put('syncQueue', {action, store, payload, at: new Date().toISOString(), status:'pending'});
-    updateOfflineBadge();
-  }catch(e){ console.warn('enqueueSync', e); }
-}
-async function getPendingSyncCount(){
-  try{
-    if(!db) await openDB();
-    const list = await all('syncQueue');
-    return (list||[]).filter(x => x.status!=='done').length;
-  }catch(e){ return 0; }
-}
-async function runExplicitSync(){
-  /* Core POS never needs server. This only processes local queue + optional future endpoint. */
-  try{
-    if(!db) await openDB();
-    const list = await all('syncQueue');
-    const pending = (list||[]).filter(x => x.status!=='done');
-    if(!pending.length){ toast('Nothing to sync — all local'); updateOfflineBadge(); return {ok:true, n:0}; }
-    // Mark as synced locally (no server required). When you add a real API, POST here.
-    for(const item of pending){
-      item.status = 'done';
-      item.syncedAt = new Date().toISOString();
-      await put('syncQueue', item);
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,IDB_VERSION);
+r.onupgradeneeded=e=>{const d=e.target.result;const old=e.oldVersion;
+  const defs={
+    products:{keyPath:'id',autoIncrement:true,indexes:[['name','name'],['barcode','barcode'],['cat','cat']]},
+    categories:{keyPath:'id',autoIncrement:true,indexes:[['name','name']]},
+    customers:{keyPath:'id',autoIncrement:true,indexes:[['name','name'],['phone','phone']]},
+    suppliers:{keyPath:'id',autoIncrement:true,indexes:[['name','name'],['phone','phone']]},
+    sales:{keyPath:'id',autoIncrement:true,indexes:[['date','date'],['customerId','customerId'],['status','status']]},
+    saleItems:{keyPath:'id',autoIncrement:true,indexes:[['saleId','saleId'],['productId','productId']]},
+    purchases:{keyPath:'id',autoIncrement:true,indexes:[['date','date'],['supplierId','supplierId']]},
+    purchaseItems:{keyPath:'id',autoIncrement:true,indexes:[['purchaseId','purchaseId'],['productId','productId']]},
+    payments:{keyPath:'id',autoIncrement:true,indexes:[['date','date'],['partyId','partyId'],['refType','refType']]},
+    expenses:{keyPath:'id',autoIncrement:true,indexes:[['date','date'],['category','category']]},
+    stockMovements:{keyPath:'id',autoIncrement:true,indexes:[['productId','productId'],['at','at'],['reason','reason']]},
+    returns:{keyPath:'id',autoIncrement:true,indexes:[['date','date'],['type','type'],['refId','refId']]},
+    heldBills:{keyPath:'id',autoIncrement:true,indexes:[['at','at']]},
+    users:{keyPath:'id',autoIncrement:true,indexes:[['username','username']]},
+    settings:{keyPath:'key'},
+    auditLogs:{keyPath:'id',autoIncrement:true,indexes:[['at','at'],['action','action']]},
+    coupons:{keyPath:'id',autoIncrement:true,indexes:[['code','code']]},
+    quotations:{keyPath:'id',autoIncrement:true,indexes:[['date','date']]},
+    pricelists:{keyPath:'id',autoIncrement:true,indexes:[['partyId','partyId'],['productId','productId']]}
+  };
+  for(const [name,cfg] of Object.entries(defs)){
+    if(!d.objectStoreNames.contains(name)){
+      const s=d.createObjectStore(name,{keyPath:cfg.keyPath,autoIncrement:!!cfg.autoIncrement});
+      (cfg.indexes||[]).forEach(([n,k])=>{try{s.createIndex(n,k)}catch(x){}});
     }
-    await put('meta', {key:'lastSync', at: new Date().toISOString(), count: pending.length});
-    toast('Synced '+pending.length+' change(s) locally');
-    updateOfflineBadge();
-    return {ok:true, n:pending.length};
-  }catch(e){
-    toast('Sync failed — data safe offline');
-    return {ok:false, error:String(e)};
+  }
+  // one-time migrate from v4 store names if present in same DB upgrade path
+  // (data copy happens after open via migrateLegacy)
+};
+r.onsuccess=e=>{db=e.target.result;migrateLegacy().then(()=>res(db)).catch(()=>res(db))};
+r.onerror=e=>rej(e.target.error)})}
+
+async function migrateLegacy(){
+  if(!db) return;
+  const map=[['transactions','sales'],['parties','customers'],['held','heldBills'],['inventoryLogs','stockMovements'],['finance','expenses'],['meta','settings']];
+  for(const [from,to] of map){
+    if(!db.objectStoreNames.contains(from)||!db.objectStoreNames.contains(to)) continue;
+    try{
+      const rows=await new Promise((res,rej)=>{const t=db.transaction(from,'readonly').objectStore(from).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
+      if(!rows.length) continue;
+      const existing=await new Promise((res,rej)=>{const t=db.transaction(to,'readonly').objectStore(to).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
+      if(existing.length) continue; // already migrated
+      const tx=db.transaction(to,'readwrite');const store=tx.objectStore(to);
+      for(const row of rows){try{store.put(row)}catch(x){}}
+      await new Promise((res,rej)=>{tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)});
+    }catch(e){console.warn('migrate',from,e)}
   }
 }
+
+const all=s=>new Promise((res,rej)=>{s=resolveStore(s);if(!s||!db.objectStoreNames.contains(s))return res([]);const t=db.transaction(s,'readonly').objectStore(s).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
+const _putRaw=(s,d)=>new Promise((res,rej)=>{s=resolveStore(s);if(!s||!db.objectStoreNames.contains(s))return res(null);const t=db.transaction(s,'readwrite').objectStore(s).put(d);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
+const TRACK_STORES=STORES_STRICT.slice();
+const put=async(s,d)=>{const id=await _putRaw(s,d);return id;};
+const del=(s,id)=>new Promise((res,rej)=>{s=resolveStore(s);if(!s)return res();const t=db.transaction(s,'readwrite').objectStore(s).delete(id);t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
+const clearStore=s=>new Promise((res,rej)=>{s=resolveStore(s);if(!s||!db.objectStoreNames.contains(s))return res();const t=db.transaction(s,'readwrite').objectStore(s).clear();t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
+const getById=(s,id)=>new Promise((res,rej)=>{s=resolveStore(s);if(!s)return res(undefined);const t=db.transaction(s,'readonly').objectStore(s).get(id);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
+
+/* ===== Offline badge only (no server sync) ===== */
+async function enqueueSync(){/* no-op: pure offline IndexedDB */}
+async function getPendingSyncCount(){return 0}
+async function runExplicitSync(){toast('All data is local (IndexedDB)');return {ok:true,n:0}}
 async function checkOfflineReady(){
   const need = ['/','/static/icon-192.png','/static/icon-512.png','/manifest.webmanifest','/sw.js'];
   let missing = [];
@@ -80,15 +92,13 @@ async function checkOfflineReady(){
       } else missing = need.slice();
     }catch(e){ missing = need.slice(); }
   } else missing = need.slice();
-  const pending = await getPendingSyncCount();
-  const ready = missing.length === 0;
-  return {ready, missing, pending, online: navigator.onLine};
+  return {ready: missing.length===0, missing, pending:0, online: navigator.onLine};
 }
 function updateOfflineBadge(){
   checkOfflineReady().then(st => {
     document.querySelectorAll('.offline-badge').forEach(el => {
       if(st.ready){
-        el.textContent = st.pending ? ('Offline · '+st.pending+' pending') : 'Offline-ready';
+        el.textContent = 'Offline-ready · IndexedDB';
         el.className = 'offline-badge ok';
       } else {
         el.textContent = 'Caching… open once online';
@@ -97,6 +107,7 @@ function updateOfflineBadge(){
     });
   }).catch(()=>{});
 }
+
 // Wrap put to auto-queue important stores (non-breaking)
 
 
@@ -183,8 +194,6 @@ function initShell(root){
 
 function panelLinks(active){
   return '<div class="offline-badge">Checking offline…</div>'+
-'<div class="install-banner"><p>Install for offline use</p><button type="button" class="btn-install-pwa">Install App</button><p style="margin-top:8px;font-size:11px;opacity:.9;font-weight:500">Chrome: menu → Install app · iOS: Share → Add to Home Screen · Needs HTTPS</p></div>'+
-'<button type="button" class="dr-link btn-sync-now" style="margin-bottom:8px;background:#ecfdf5;color:#059669;font-weight:700">↻ Sync / Update (optional)</button>'+
 '<div class="panel-group"><button type="button" class="panel-toggle btn-change-panel">'+
 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'+
 'Change Panel<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg></button>'+

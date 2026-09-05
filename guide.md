@@ -3,35 +3,48 @@
 Offline-first POS. Flask + HTML/JS + IndexedDB. PWA. Deploy: GitHub + Render.
 Always deliver full project as ZIP.
 
-## IndexedDB (`AtomBills` v3)
-products · transactions · held · purchases · finance · suppliers · coupons · parties · quotations · pricelists · inventoryLogs
+## IndexedDB (`AtomBills` v5) — strict stores
+
+- products
+- categories
+- customers
+- suppliers
+- sales
+- saleItems
+- purchases
+- purchaseItems
+- payments
+- expenses
+- stockMovements
+- returns
+- heldBills
+- users
+- settings
+- auditLogs
+- coupons
+- quotations
+- pricelists
+
+Legacy aliases (auto-mapped): transactions→sales, parties→customers, held→heldBills, inventoryLogs→stockMovements, finance→expenses, meta→settings.
+
+## Hamburger menu
+- Offline-ready badge only
+- Change Panel (Proprietor / Billing / Accountant)
+- No Sync / Update
+- No Install for offline use (use browser PWA install)
+
+## Accountant
+Book tabs: P&L · Sales · Purchase · Sales Return · Purchase Return · GSTR-1 · Tax summary · Day book
 
 ## Atom Search Dropdown
-Search input + dropdown **only after the user types** (matched results only — never dump full list on focus/empty).
-Used in: Inventory product pick · Checkout customer select.
-
-## Text POS
-Rows: name · tax % · stock qty · price — no images.
+Search input + dropdown **only after the user types**.
 
 ## Checkout
-1. **Cart** | **Checkout**
-2. Select customer + **Cash / Bank-UPI / Unpaid**
-3. Subtotal · GST · Discount · Total + coupon
-4. Creates bill → invoice PNG preview + Share
-5. Syncs sales book, recent TX, proprietor, stock, shift
+Creates sale in IndexedDB (sales store) → stockMovements · proprietor stats.
 
-## Database Excel
-- Import products/clients (.xlsx only)
-- Checkboxes: **Import and merge** · **Remove all products then import**
-- Export products Excel · Export clients Excel
+## Database
+Export / import full IndexedDB dump (v5 schema). Excel import/export products & clients.
 
 ## Render
 Build: `pip install -r requirements.txt`  
 Start: `gunicorn app:app --bind 0.0.0.0:$PORT`
-
-## Price lists
-Per-customer special prices (list name, customer, product, price).
-
-## More actions (+)
-Sales return · Purchase return · Received payment · Make payment · Quotation · Expense · Purchase · Parties
-All write to IndexedDB and sync stock / books / shift where relevant.
