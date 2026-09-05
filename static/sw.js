@@ -1,5 +1,5 @@
 /* Atom Bills — offline-first (cache always wins; Render only if cache miss) */
-const VER = 'atom-bills-offline-v29';
+const VER = 'atom-bills-offline-v30';
 const ASSETS = [
   '/',
   '/?source=pwa',
@@ -10,6 +10,9 @@ const ASSETS = [
   '/static/common.css',
   '/static/common.css?v=23',
   '/static/common.js',
+  '/static/xlsx.full.min.js',
+  '/static/billing-pos.js',
+  '/static/db.js',
   '/static/common.js?v=23',
   '/static/proprietor-extra.js',
   '/static/manifest.webmanifest',
