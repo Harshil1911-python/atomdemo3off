@@ -1,5 +1,5 @@
 /* Atom Bills — offline-first (cache always wins; Render only if cache miss) */
-const VER = 'atom-bills-offline-v31';
+const VER = 'atom-bills-offline-v32';
 const ASSETS = [
   '/',
   '/?source=pwa',

@@ -100,7 +100,7 @@ document.addEventListener('click', function(e){
 }, true);
 
 
-function getBrand(){try{const s=JSON.parse(localStorage.getItem('atom_prefs')||'{}');return{store:s.store||'Atom Bills',phone:s.phone||'',addr:s.addr||'',gstin:s.gstin||'',state:s.state||'',gst:+(s.gst||0),footer:s.footer||'Thank you!',color:s.color||'#4f46e5',logo:s.logo||'',layout:s.layout||'classic',paper:+(s.paper||80)}}catch(e){return{store:'Atom Bills',phone:'',addr:'',gstin:'',state:'',gst:0,footer:'Thank you!',color:'#4f46e5',logo:'',layout:'classic',paper:80}}}
+function getBrand(){try{const s=JSON.parse(localStorage.getItem('atom_prefs')||'{}');return{store:s.store||'Atom Bills',phone:s.phone||'',addr:s.addr||'',gstin:s.gstin||'',state:s.state||'',gst:+(s.gst||0),gstEnabled:s.gstEnabled!==false,footer:s.footer||'Thank you!',color:s.color||'#4f46e5',logo:s.logo||'',layout:s.layout||'classic',paper:+(s.paper||80)}}catch(e){return{store:'Atom Bills',phone:'',addr:'',gstin:'',state:'',gst:0,gstEnabled:true,footer:'Thank you!',color:'#4f46e5',logo:'',layout:'classic',paper:80}}}
 
 function logSession(panel){
   try{
@@ -131,44 +131,86 @@ function playBeep(){
 
 async function renderInvoicePng(tx){
   const b=getBrand();
+  const gstOn=b.gstEnabled!==false && !!(b.gstin||b.gst||tx.gst);
   const items=tx.items||[];
-  const W=400,pad=20;
-  const lineH=22,headerH=140,footerH=120,itemsH=Math.max(items.length,1)*lineH+40;
-  const H=headerH+itemsH+footerH+80;
+  const W=420,pad=18;
+  const lineH=18;
+  const headerH=gstOn?168:130;
+  const taxRows=gstOn?4:0;
+  const itemsH=Math.max(items.length,1)*lineH+48;
+  const H=headerH+itemsH+120+taxRows*16+40;
   const c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  // Header
   ctx.fillStyle='#0f172a';ctx.textAlign='center';
-  ctx.font='bold 18px system-ui,sans-serif';ctx.fillText(b.store||'Atom Bills',W/2,32);
-  ctx.font='12px system-ui,sans-serif';ctx.fillStyle='#64748b';
-  if(b.addr)ctx.fillText(b.addr,W/2,50);
-  if(b.phone)ctx.fillText(b.phone,W/2,66);
-  if(b.gstin)ctx.fillText('GSTIN: '+b.gstin,W/2,82);
-  ctx.fillStyle='#0f172a';ctx.font='12px system-ui,sans-serif';ctx.textAlign='left';
-  ctx.fillText('Bill: '+(tx.id||'').slice(-10),pad,110);
-  ctx.fillText((tx.date||'').slice(0,16).replace('T',' '),pad,126);
-  ctx.textAlign='right';ctx.fillText(tx.title||'Cash Sale',W-pad,110);
-  ctx.fillText((tx.payMethod||'cash').toUpperCase()+(tx.status==='unpaid'?' · UNPAID':''),W-pad,126);
-  ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,138);ctx.lineTo(W-pad,138);ctx.stroke();
-  let y=158;ctx.font='bold 11px system-ui';ctx.textAlign='left';
-  ctx.fillText('ITEM',pad,y);ctx.textAlign='center';ctx.fillText('QTY',W*0.55,y);ctx.textAlign='right';ctx.fillText('AMT',W-pad,y);
-  y+=8;ctx.strokeStyle='#f1f5f9';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=18;
-  ctx.font='12px system-ui';
+  ctx.font='bold 17px system-ui,sans-serif';ctx.fillText(b.store||'Atom Bills',W/2,26);
+  ctx.font='11px system-ui,sans-serif';ctx.fillStyle='#64748b';
+  let hy=42;
+  if(b.addr){ctx.fillText(b.addr.slice(0,48),W/2,hy);hy+=14}
+  if(b.phone){ctx.fillText('Ph: '+b.phone,W/2,hy);hy+=14}
+  if(gstOn&&b.gstin){ctx.fillStyle='#0f172a';ctx.font='bold 11px system-ui';ctx.fillText('GSTIN: '+b.gstin,W/2,hy);hy+=14}
+  if(gstOn){ctx.font='10px system-ui';ctx.fillStyle='#64748b';ctx.fillText('TAX INVOICE',W/2,hy);hy+=12}
+  ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,hy+4);ctx.lineTo(W-pad,hy+4);ctx.stroke();
+  let y=hy+20;
+  ctx.fillStyle='#0f172a';ctx.font='11px system-ui';ctx.textAlign='left';
+  ctx.fillText('Bill: '+(tx.billNo||tx.id||''),pad,y);
+  ctx.textAlign='right';ctx.fillText((tx.date||'').slice(0,16).replace('T',' '),W-pad,y);y+=14;
+  ctx.textAlign='left';ctx.fillText('Buyer: '+(tx.title||'Cash Sale'),pad,y);
+  ctx.textAlign='right';ctx.fillText((tx.payMethod||'cash').toUpperCase()+(tx.status==='unpaid'?' · UNPAID':tx.status==='partial'?' · PARTIAL':tx.status==='void'?' · VOID':''),W-pad,y);y+=10;
+  ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=16;
+  // Columns
+  ctx.font='bold 10px system-ui';ctx.textAlign='left';ctx.fillStyle='#64748b';
+  ctx.fillText('#',pad,y);
+  ctx.fillText('ITEM',pad+18,y);
+  if(gstOn)ctx.fillText('HSN',W*0.42,y);
+  ctx.textAlign='center';ctx.fillText('QTY',W*0.58,y);
+  ctx.textAlign='right';ctx.fillText('RATE',W*0.78,y);
+  ctx.fillText('AMT',W-pad,y);
+  y+=6;ctx.strokeStyle='#f1f5f9';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=14;
+  ctx.font='11px system-ui';ctx.fillStyle='#0f172a';
+  let i=1;
   items.forEach(it=>{
     const line=(+it.qty||0)*(+it.price||0);
-    ctx.textAlign='left';ctx.fillStyle='#0f172a';
-    const nm=(it.name||'').slice(0,28);ctx.fillText(nm,pad,y);
-    ctx.textAlign='center';ctx.fillText(String(it.qty||0),W*0.55,y);
-    ctx.textAlign='right';ctx.fillText('₹'+Number(line).toLocaleString('en-IN'),W-pad,y);
+    ctx.textAlign='left';ctx.fillText(String(i++),pad,y);
+    ctx.fillText((it.name||'').slice(0,gstOn?16:22),pad+18,y);
+    if(gstOn)ctx.fillText((it.hsn||'—').toString().slice(0,8),W*0.42,y);
+    ctx.textAlign='center';ctx.fillText(String(it.qty||0),W*0.58,y);
+    ctx.textAlign='right';ctx.fillText(Number(it.price||0).toFixed(2),W*0.78,y);
+    ctx.fillText(Number(line).toFixed(2),W-pad,y);
     y+=lineH;
   });
-  y+=10;ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=22;
+  y+=6;ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=18;
   const sub=+tx.subtotal||0,gst=+tx.gst||0,disc=+tx.discount||0,tot=+tx.amount||0;
-  ctx.font='12px system-ui';ctx.textAlign='left';ctx.fillStyle='#64748b';
-  ctx.fillText('Subtotal',pad,y);ctx.textAlign='right';ctx.fillStyle='#0f172a';ctx.fillText('₹'+sub.toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=20;
-  ctx.textAlign='left';ctx.fillStyle='#64748b';ctx.fillText('GST',pad,y);ctx.textAlign='right';ctx.fillStyle='#0f172a';ctx.fillText('₹'+gst.toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=20;
-  if(disc){ctx.textAlign='left';ctx.fillStyle='#64748b';ctx.fillText('Discount',pad,y);ctx.textAlign='right';ctx.fillStyle='#dc2626';ctx.fillText('- ₹'+disc.toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=20}
-  ctx.font='bold 15px system-ui';ctx.textAlign='left';ctx.fillStyle='#0f172a';ctx.fillText('Total',pad,y);ctx.textAlign='right';ctx.fillText('₹'+tot.toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=28;
-  ctx.font='11px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='center';ctx.fillText(b.footer||'Thank you!',W/2,y);
+  const taxable=sub||Math.max(0,tot-gst);
+  const cgst=gst/2,sgst=gst/2;
+  function row(label,val,bold,col){
+    ctx.font=(bold?'bold ':'')+'11px system-ui';ctx.textAlign='left';ctx.fillStyle=col||'#64748b';
+    ctx.fillText(label,pad,y);ctx.textAlign='right';ctx.fillStyle=col||'#0f172a';
+    ctx.fillText('₹'+Number(val).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=16;
+  }
+  row('Taxable value',taxable);
+  if(disc)row('Discount',-disc,false,'#dc2626');
+  if(gstOn){
+    row('CGST',cgst);
+    row('SGST',sgst);
+    row('Total tax',gst,true);
+  } else if(gst){
+    row('GST',gst);
+  }
+  ctx.font='bold 14px system-ui';ctx.textAlign='left';ctx.fillStyle='#0f172a';
+  ctx.fillText('Grand Total',pad,y);ctx.textAlign='right';
+  ctx.fillText('₹'+Number(tot).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=22;
+  if(tx.received!=null&&tx.balanceDue>0){
+    ctx.font='11px system-ui';ctx.textAlign='left';ctx.fillStyle='#64748b';
+    ctx.fillText('Received',pad,y);ctx.textAlign='right';ctx.fillStyle='#0f172a';ctx.fillText('₹'+Number(tx.received).toLocaleString('en-IN'),W-pad,y);y+=14;
+    ctx.textAlign='left';ctx.fillStyle='#b45309';ctx.fillText('Balance due',pad,y);ctx.textAlign='right';ctx.fillText('₹'+Number(tx.balanceDue).toLocaleString('en-IN'),W-pad,y);y+=16;
+  }
+  if(gstOn){
+    ctx.font='9px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+    ctx.fillText('Supply: '+(b.state?('State '+b.state):'Intra-state')+' · This is a computer generated invoice',W/2,y);y+=12;
+  }
+  ctx.font='11px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText(b.footer||'Thank you!',W/2,y);
   return c.toDataURL('image/png');
 }
 async function sharePngDataUrl(dataUrl,filename){
