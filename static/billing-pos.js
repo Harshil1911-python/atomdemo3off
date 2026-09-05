@@ -8,8 +8,7 @@
     let n = row && row.value != null ? +row.value : 0;
     n += 1;
     await put('settings', { key: 'billSeq', value: n });
-    const pad = String(n).padStart(4, '0');
-    return 'BILL-' + pad;
+    return 'atom' + n;
   }
 
   async function getRoundMode() {
@@ -97,11 +96,18 @@
       toast('Already void');
       return false;
     }
-    if (!(await appConfirm('Void bill', 'Void ' + (tx.billNo || tx.id) + ' and restore stock?', 'Void', true)))
+    const label = tx.billNo || tx.id || 'bill';
+    if (!(await appConfirm('Void bill', 'Void ' + label + '? Stock, customer balance and shift totals will reverse.', 'Void', true)))
       return false;
+    const prevStatus = tx.status;
+    const amount = +tx.amount || 0;
+    const received = tx.received != null ? +tx.received : (prevStatus === 'unpaid' ? 0 : amount);
+    const balanceDue = tx.balanceDue != null ? +tx.balanceDue : (prevStatus === 'unpaid' || prevStatus === 'partial' ? amount - received : 0);
     tx.status = 'void';
     tx.voidAt = new Date().toISOString();
+    tx.prevStatus = prevStatus;
     await put('transactions', tx);
+    // Restore stock for every line
     if (Array.isArray(tx.items)) {
       for (const line of tx.items) {
         if (!line.id || String(line.id).startsWith('custom_')) continue;
@@ -114,26 +120,46 @@
               productId: p.id,
               name: p.name,
               delta: +line.qty || 0,
-              reason: 'Void ' + (tx.billNo || tx.id),
+              reason: 'Void ' + label,
               at: new Date().toISOString(),
             });
           }
         } catch (e) {}
       }
     }
-    if (tx.partyId && tx.status === 'void') {
-      /* balance already set; if was unpaid, reduce balance */
-    }
-    if (tx.payMethod === 'credit' || tx.originalStatus === 'unpaid') {
+    // Reverse customer udhaar / balance for unpaid or partial
+    if (tx.partyId && balanceDue > 0) {
       try {
         const party = await getById('parties', tx.partyId);
         if (party) {
-          party.balance = Math.max(0, (party.balance || 0) - (+tx.amount || 0));
+          party.balance = Math.max(0, (party.balance || 0) - balanceDue);
           await put('parties', party);
         }
       } catch (e) {}
     }
-    toast('Bill voided');
+    // Reverse shift totals for money actually received
+    if (received > 0) {
+      try {
+        const s = JSON.parse(localStorage.getItem('atom_shift_data') || 'null');
+        if (s && s.open) {
+          s.sales = Math.max(0, (s.sales || 0) - received);
+          const m = (tx.payMethod || 'cash').toLowerCase();
+          if (m === 'upi' || m === 'bank' || m === 'card') s.upi = Math.max(0, (s.upi || 0) - received);
+          else s.cash = Math.max(0, (s.cash || 0) - received);
+          localStorage.setItem('atom_shift_data', JSON.stringify(s));
+        }
+      } catch (e) {}
+    }
+    // Audit
+    try {
+      await put('auditLogs', {
+        action: 'void_sale',
+        ref: label,
+        at: new Date().toISOString(),
+        detail: { id: tx.id, amount, received, balanceDue, prevStatus },
+      });
+    } catch (e) {}
+    toast('Voided ' + label);
     return true;
   }
 

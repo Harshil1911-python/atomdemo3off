@@ -95,19 +95,8 @@ async function checkOfflineReady(){
   } else missing = need.slice();
   return {ready: missing.length===0, missing, pending:0, online: navigator.onLine};
 }
-function updateOfflineBadge(){
-  checkOfflineReady().then(st => {
-    document.querySelectorAll('.offline-badge').forEach(el => {
-      if(st.ready){
-        el.textContent = 'Offline-ready · IndexedDB';
-        el.className = 'offline-badge ok';
-      } else {
-        el.textContent = 'Caching… open once online';
-        el.className = 'offline-badge warn';
-      }
-    });
-  }).catch(()=>{});
-}
+function updateOfflineBadge(){ document.querySelectorAll('.offline-badge').forEach(el=>{el.style.display='none'}); }
+
 
 // Wrap put to auto-queue important stores (non-breaking)
 

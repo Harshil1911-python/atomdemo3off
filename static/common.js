@@ -81,8 +81,7 @@ function initShell(root){
 }
 
 function panelLinks(active){
-  return '<div class="offline-badge">Checking offline…</div>'+
-'<div class="panel-group"><button type="button" class="panel-toggle btn-change-panel">'+
+  return '<div class="panel-group"><button type="button" class="panel-toggle btn-change-panel">'+
 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>'+
 'Change Panel<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg></button>'+
 '<div class="panel-opts">'+
