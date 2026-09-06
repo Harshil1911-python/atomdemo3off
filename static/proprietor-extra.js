@@ -1,1 +1,1 @@
-/* Extended proprietor helpers - loaded if present */
+/* proprietor-extra: reserved */

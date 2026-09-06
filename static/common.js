@@ -67,7 +67,7 @@ function initShell(root){
   if(!window.__installBound){
     window.__installBound=1;
     let deferred=null;
-    window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;document.querySelectorAll('.install-banner').forEach(b=>b.classList.add('show'))});
+    window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;/* install banner removed */});
     document.addEventListener('click',async e=>{
       const ib=e.target.closest&&e.target.closest('.btn-install-pwa');
       if(!ib)return;
@@ -191,9 +191,18 @@ async function renderInvoicePng(tx){
   row('Taxable value',taxable);
   if(disc)row('Discount',-disc,false,'#dc2626');
   if(gstOn){
-    row('CGST',cgst);
-    row('SGST',sgst);
-    row('Total tax',gst,true);
+    const shopState=String(b.state||'').slice(0,2);
+    const buyerState=String(tx.buyerState||tx.state||shopState).slice(0,2);
+    const inter=shopState&&buyerState&&shopState!==buyerState;
+    if(inter){
+      row('IGST @ integrated',gst,true);
+    } else {
+      row('CGST',cgst);
+      row('SGST',sgst);
+      row('Total tax',gst,true);
+    }
+    ctx.font='9px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='left';
+    ctx.fillText(inter?('Inter-state · Place of supply: '+buyerState):('Intra-state · State '+shopState),pad,y);y+=12;
   } else if(gst){
     row('GST',gst);
   }

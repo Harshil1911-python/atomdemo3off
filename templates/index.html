@@ -290,6 +290,15 @@ html,body{height:100%;margin:0}
 #atom-toast.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:.2s;z-index:9999;pointer-events:none}
 #atom-toast.toast.on{opacity:1}
 
+
+/* phone-friendly extras */
+#billSearch,#pr-stmtSearch,#pr-purProdSearch{font-size:16px!important}
+#pr-pinInput{font-size:28px!important;min-height:52px}
+#pr-pinGate .save{min-height:48px;font-size:16px}
+.pi{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pi:active{background:#f1f5f9}
+#pr-infoList .pi{padding:10px;border-radius:12px;margin-bottom:6px;background:#fff;box-shadow:var(--sh)}
+
 </style>
 </head>
 <body>
@@ -317,7 +326,7 @@ html,body{height:100%;margin:0}
         <button class="qa ex" id="btnEx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Expiry<span class="cnt" id="exCnt">0</span></button>
         <button class="qa st" id="btnStock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Stock alerts<span class="cnt" id="stockCnt">0</span></button>
       </div>
-      <section class="sec"><div class="sh"><h2>Recent bills</h2></div><div class="txl" id="txList"><div class="empty">No recent transactions yet.</div></div></section>
+      <section class="sec"><div class="sh"><h2>Recent bills</h2></div><input id="billSearch" placeholder="Search atom1, customer…" style="width:100%;margin:0 0 12px;padding:11px 14px;border:1px solid var(--bd,#e2e8f0);border-radius:12px;font-family:inherit;font-size:14px"><div class="txl" id="txList"><div class="empty">No recent transactions yet.</div></div></section>
     </div>
   </div>
   <div class="view" id="v-text">
@@ -606,8 +615,33 @@ html,body{height:100%;margin:0}
         </div>
         <input type="hidden" id="pr-invProdId">
         <label>Change (+/−)</label><input id="pr-invDelta" type="number" step="1" placeholder="e.g. -2 or 5">
-        <label>Reason</label><input id="pr-invReason" placeholder="Damaged, count correction…">
+        <label>Reason *</label>
+        <select id="pr-invReason" style="width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:12px;font-family:inherit;font-weight:600;margin-bottom:10px">
+          <option value="">Select reason…</option>
+          <option value="Stock count correction">Stock count correction</option>
+          <option value="Damaged / wastage">Damaged / wastage</option>
+          <option value="Theft / loss">Theft / loss</option>
+          <option value="Opening stock">Opening stock</option>
+          <option value="Transfer in">Transfer in</option>
+          <option value="Transfer out">Transfer out</option>
+          <option value="Other">Other</option>
+        </select>
+        <input id="pr-invReasonOther" placeholder="Describe other reason…" style="display:none;width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:12px;font-family:inherit;margin-bottom:10px">
         <button type="button" class="save btn-dark" id="pr-invApply">Apply</button>
+      </div>
+      <div class="af" style="background:#fff;border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:14px">
+        <div class="sec-title">Record purchase (updates stock)</div>
+        <label>Supplier (optional)</label><input id="pr-purSupplier" placeholder="Supplier name">
+        <label>Product</label>
+        <div style="position:relative">
+          <input id="pr-purProdSearch" placeholder="Search product…" autocomplete="off">
+          <div id="pr-purProdDrop" class="atom-search-dd" style="display:none"></div>
+        </div>
+        <input type="hidden" id="pr-purProdId">
+        <div class="row2"><div><label>Qty *</label><input id="pr-purQty" type="number" min="1" step="1" value="1"></div>
+        <div><label>Cost / unit (₹)</label><input id="pr-purCost" type="number" min="0" step="0.01"></div></div>
+        <label>Note</label><input id="pr-purNote" placeholder="Invoice no. / remark">
+        <button type="button" class="save" id="pr-purSave">Save purchase</button>
       </div>
       <div class="sec-title">Recent movements</div>
       <div id="pr-invLog" class="book-wrap"></div>
@@ -629,6 +663,22 @@ html,body{height:100%;margin:0}
     </div>
 
     
+    
+    <div class="panel-view" id="pr-viewCustStmt">
+      <button type="button" class="backToHub" data-back="main" style="margin-bottom:12px;border:0;background:#f1f5f9;padding:8px 12px;border-radius:8px;font-weight:600;font-family:inherit">← Back</button>
+      <div class="af" style="background:#fff;border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:12px">
+        <div class="sec-title">Customer statement</div>
+        <label>Customer</label>
+        <div style="position:relative">
+          <input id="pr-stmtSearch" placeholder="Search customer…" autocomplete="off">
+          <div id="pr-stmtDrop" class="atom-search-dd" style="display:none"></div>
+        </div>
+        <input type="hidden" id="pr-stmtPartyId">
+        <button type="button" class="save" id="pr-stmtGo" style="margin-top:10px">Show statement</button>
+      </div>
+      <div id="pr-stmtBody" class="book-wrap"></div>
+    </div>
+
     <div class="panel-view" id="pr-viewReports">
       <button type="button" class="backToHub" data-back="main" style="margin-bottom:12px;border:0;background:#f1f5f9;padding:8px 12px;border-radius:8px;font-weight:600;font-family:inherit">← Back</button>
       <div id="pr-reportsBody" class="book-wrap"></div>
@@ -672,6 +722,13 @@ html,body{height:100%;margin:0}
         <label>Default GST %</label><input id="pr-bizGst" type="number" min="0" step="0.01" placeholder="18">
         <label>Invoice footer</label><input id="pr-bizFooter" placeholder="Thank you! Visit again">
         <label style="display:flex;align-items:center;gap:10px;margin-top:8px"><input type="checkbox" id="pr-bizGstEnabled" style="width:18px;height:18px"> Enable GST on invoices</label>
+        
+        <div class="sec-title" style="margin-top:18px">Proprietor PIN</div>
+        <p style="font-size:12px;color:#64748b;margin-bottom:8px">4-digit PIN locks Proprietor panel. Leave blank to clear.</p>
+        <label>Current PIN (if set)</label><input id="pr-pinCurrent" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" autocomplete="off">
+        <label>New PIN</label><input id="pr-pinNew" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="4 digits" autocomplete="off">
+        <label>Confirm new PIN</label><input id="pr-pinConfirm" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="Repeat" autocomplete="off">
+
         <button type="button" class="save" id="pr-bizSave" style="margin-top:12px">Save settings</button>
       </div>
     </div>
@@ -741,7 +798,7 @@ name | phone | email | address | balance</pre>
     </div>
   </div>
 </div>
-<div class="modal" id="pr-prodCardM" style="display:none"><div class="pcard" id="pr-prodCardBody"></div></div>
+<div class="modal" id="pr-prodCardM" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.45);align-items:center;justify-content:center;padding:16px"><div class="pcard" id="pr-prodCardBody"></div></div>
 <div class="modal" id="pr-pScanM" style="display:none" style="align-items:flex-end">
   <div style="background:#fff;width:100%;max-width:480px;height:70%;border-radius:16px 16px 0 0;display:flex;flex-direction:column;overflow:hidden">
     <div style="padding:12px 16px;display:flex;justify-content:space-between;font-weight:700;border-bottom:1px solid #e2e8f0">Scan barcode <button type="button" id="pr-pScanX" style="border:0;background:0;font-size:20px">×</button></div>
@@ -783,6 +840,17 @@ name | phone | email | address | balance</pre>
 <div class="toast" id="ac-toast"></div>
 </div>
 </div>
+
+<div class="modal" id="pr-pinGate" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);align-items:center;justify-content:center">
+  <div style="background:#fff;width:88%;max-width:320px;border-radius:18px;padding:22px 18px;box-shadow:0 20px 50px rgba(0,0,0,.25)">
+    <h3 style="font-size:17px;font-weight:800;margin-bottom:6px;text-align:center">Proprietor PIN</h3>
+    <p style="font-size:12px;color:#64748b;text-align:center;margin-bottom:14px">Enter 4-digit PIN to continue</p>
+    <input id="pr-pinInput" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" placeholder="••••" style="width:100%;text-align:center;font-size:24px;letter-spacing:12px;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-weight:800;font-family:inherit">
+    <button type="button" id="pr-pinUnlock" class="save" style="margin-top:12px">Unlock</button>
+    <button type="button" id="pr-pinCancel" style="width:100%;margin-top:8px;padding:10px;border:0;background:0;color:#64748b;font-weight:600;font-family:inherit">Cancel</button>
+  </div>
+</div>
+
 <div id="root-calculator" class="panel-root">
 <div class="app">
   <div class="top" style="background:#000!important;color:#fff"><h1>Calculator</h1><button type="button" id="ca-close">×</button></div>
@@ -934,7 +1002,7 @@ function initShell(root){
   if(!window.__installBound){
     window.__installBound=1;
     let deferred=null;
-    window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;document.querySelectorAll('.install-banner').forEach(b=>b.classList.add('show'))});
+    window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;/* install banner removed */});
     document.addEventListener('click',async e=>{
       const ib=e.target.closest&&e.target.closest('.btn-install-pwa');
       if(!ib)return;
@@ -1058,9 +1126,18 @@ async function renderInvoicePng(tx){
   row('Taxable value',taxable);
   if(disc)row('Discount',-disc,false,'#dc2626');
   if(gstOn){
-    row('CGST',cgst);
-    row('SGST',sgst);
-    row('Total tax',gst,true);
+    const shopState=String(b.state||'').slice(0,2);
+    const buyerState=String(tx.buyerState||tx.state||shopState).slice(0,2);
+    const inter=shopState&&buyerState&&shopState!==buyerState;
+    if(inter){
+      row('IGST @ integrated',gst,true);
+    } else {
+      row('CGST',cgst);
+      row('SGST',sgst);
+      row('Total tax',gst,true);
+    }
+    ctx.font='9px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='left';
+    ctx.fillText(inter?('Inter-state · Place of supply: '+buyerState):('Intra-state · State '+shopState),pad,y);y+=12;
   } else if(gst){
     row('GST',gst);
   }
@@ -1113,9 +1190,26 @@ window.addEventListener('offline', function(){ if(typeof updateOfflineBadge==='f
 <script>
 window.__atomPanel='billing';
 window.__panelInited={billing:false,proprietor:false,accountant:false,calculator:false};
-function showPanel(name){
+
+async function requirePropPin(){
+  let pin='';
+  try{const row=await getById('settings','propPin');pin=row&&row.value?String(row.value):''}catch(e){}
+  if(!pin||!/^\d{4}$/.test(pin))return true;
+  return new Promise((resolve)=>{
+    const gate=$('#pr-pinGate'),inp=$('#pr-pinInput');
+    if(!gate||!inp){resolve(true);return}
+    gate.style.display='flex';inp.value='';setTimeout(()=>inp.focus(),100);
+    const done=(ok)=>{gate.style.display='none';resolve(ok)};
+    $('#pr-pinUnlock').onclick=()=>{if(inp.value===pin){toast('Unlocked');done(true)}else toast('Wrong PIN')};
+    $('#pr-pinCancel').onclick=()=>done(false);
+    inp.onkeydown=(e)=>{if(e.key==='Enter')$('#pr-pinUnlock').click()};
+  });
+}
+
+async function showPanel(name){
   var allowed=['billing','proprietor','accountant','calculator'];
   if(allowed.indexOf(name)<0) name='billing';
+  if(name==='proprietor'){const ok=await requirePropPin();if(!ok)return;}
   document.querySelectorAll('.panel-root').forEach(function(el){el.classList.remove('on')});
   var root=document.getElementById('root-'+name);
   if(root) root.classList.add('on');
@@ -1148,6 +1242,37 @@ window.__panelInit={};
 </script>
 <script>
 window.__panelInit.billing=function(){
+
+/* USB barcode wedge: buffer rapid keypresses ending with Enter */
+(function(){
+  let buf='',last=0;
+  document.addEventListener('keydown',async function(e){
+    if(window.__atomPanel!=='billing')return;
+    const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;
+    const now=Date.now();
+    if(now-last>80)buf='';
+    last=now;
+    if(e.key==='Enter'){
+      const code=buf.trim();buf='';
+      if(code.length>=3){
+        e.preventDefault();
+        try{
+          if(!db)await openDB();
+          const list=await all('products');
+          const p=list.find(x=>String(x.barcode||'')===code||String(x.sku||'')===code);
+          if(!p){toast('No product: '+code);return}
+          if(typeof AtomPOS!=='undefined'&&AtomPOS.addProductToCart){
+            const ok=await AtomPOS.addProductToCart(p,cart,1);
+            if(ok){renderCartBar();if(typeof playBeep==='function')playBeep();toast(p.name+' +')}
+          }
+        }catch(err){}
+      }
+      return;
+    }
+    if(e.key.length===1)buf+=e.key;
+  },true);
+})();
+
 document.addEventListener("contextmenu",e=>e.preventDefault());
 window.onerror=function(m,s,l,c,e){try{console.error(m,s,l);var t=document.getElementById('toast');if(t){t.textContent=String(m).slice(0,80);t.classList.add('on')}}catch(x){}};
 let cart=[],plusOpen=false,currentView='home',sheetOpen=false,drawerOpen=false,shiftActive=false;
@@ -1647,7 +1772,10 @@ $('#coCustNext').onclick=async()=>{
   if(coPay==='unpaid'){status='unpaid';received=0;balanceDue=total;payMethod='credit'}
   else if(received<total-0.001){status='partial';balanceDue=Math.round((total-received)*100)/100;payMethod=payMethod||'cash'}
   else {status='paid';balanceDue=0}
-  const tx={id,billNo,title,amount:total,received,balanceDue,subtotal:Math.round(sub*100)/100,gst:Math.round(gst*100)/100,discount:coDiscount,roundAdj,coupon:coCouponCode||'',status,date:new Date().toISOString(),payMethod,partyId:selectedCustomer?selectedCustomer.id:null,items:JSON.parse(JSON.stringify(cart))};
+  const brand=typeof getBrand==='function'?getBrand():{};
+  const tx={id,billNo,title,amount:total,received,balanceDue,subtotal:Math.round(sub*100)/100,gst:Math.round(gst*100)/100,discount:coDiscount,roundAdj,coupon:coCouponCode||'',status,date:new Date().toISOString(),payMethod,partyId:selectedCustomer?selectedCustomer.id:null,buyerState:(selectedCustomer&&selectedCustomer.state)||brand.state||'',items:JSON.parse(JSON.stringify(cart)).map(it=>({...it,hsn:it.hsn||''}))};
+  // attach HSN from products
+  for(const it of tx.items){if(!it.hsn&&it.id&&!String(it.id).startsWith('custom_')){try{const p=await getById('products',+it.id);if(p)it.hsn=p.hsn||''}catch(e){}}}
   await put('transactions',tx);
   for(const line of cart){
     if(!line.id||String(line.id).startsWith('custom_'))continue;
@@ -1739,6 +1867,8 @@ async function renderHeld(){
 async function renderTx(){
   const box=$('#txList');
   let list=await all('transactions');
+  const bq=(($('#billSearch')&&$('#billSearch').value)||'').trim().toLowerCase();
+  if(bq)list=list.filter(t=>String(t.billNo||'').toLowerCase().includes(bq)||String(t.title||'').toLowerCase().includes(bq)||String(t.id||'').toLowerCase().includes(bq));
   list=(list||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,30);
   if(!list.length){box.innerHTML='<div class="empty">No recent transactions yet.</div>';return}
   box.innerHTML=list.map(t=>{
@@ -1768,6 +1898,7 @@ async function renderTx(){
     if(t&&await AtomPOS.voidSale(t)){await renderTx();await renderExStCounts()}
   });
 }
+if($('#billSearch')&&!$('#billSearch').dataset.bound){$('#billSearch').dataset.bound='1';$('#billSearch').oninput=()=>renderTx()}
 async function renderExStCounts(){const list=await all('products');$('#exCnt').textContent=list.filter(isExpiringSoon).length;const out=list.filter(p=>(p.stock||0)<=0).length;const low=list.filter(p=>{const m=+p.minStock||0;return m>0&&(p.stock||0)>0&&(p.stock||0)<=m}).length;if($('#stockCnt'))$('#stockCnt').textContent=out+low;if($('#stCnt'))$('#stCnt').textContent=out;if($('#lowCnt'))$('#lowCnt').textContent=low}
 
 (async()=>{
@@ -1792,6 +1923,25 @@ initShell(document.getElementById('root-billing'));
 </script>
 <script>
 window.__panelInit.proprietor=function(){
+
+async function compressImageDataUrl(dataUrl,maxW,quality){
+  maxW=maxW||800;quality=quality||0.72;
+  return new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW}
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);
+      resolve(c.toDataURL('image/jpeg',quality));
+    };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
+  });
+}
+
+/* local view router — do not shadow SPA showPanel */
+
 document.addEventListener("contextmenu",e=>e.preventDefault());
 const chev='<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><polyline points="6 9 12 15 18 9"/></svg>';
 let drawerOpen=false,editId=null,photoData=null,_pScanStream=null,_pScanLoop=0,_pScanBusy=false;
@@ -1802,7 +1952,7 @@ function closeDrawer(){$('#pr-dr').classList.remove('on');$('#pr-ov').classList.
 $('#pr-btnMenu').onclick=e=>{e.preventDefault();drawerOpen?closeDrawer():openDrawer()};
 $('#pr-ov').onclick=closeDrawer;
 
-function showPanel(id,title,sub){
+function showPropView(id,title,sub){
   $$('.panel-view').forEach(v=>v.classList.remove('on'));
   const el=$(id);if(el)el.classList.add('on');
   $('#pr-pageTitle').textContent=title||'';$('#pr-pageSub').textContent=sub||'';
@@ -1830,6 +1980,7 @@ function buildDrawer(){
        <button type="button" id="navReports">Reports</button>
        <button type="button" id="navInvoices">Invoices</button>
        <button type="button" id="navReturns">Returns</button>
+       <button type="button" id="navStmt">Customer statement</button>
      </div>
      <button type="button" class="adm-drop" id="navSettings">Settings${chev}</button>
      <div class="adm-sub" id="subSettings">
@@ -1839,17 +1990,17 @@ function buildDrawer(){
        <button type="button" id="navShifts">Shifts</button>
        <button type="button" id="navSessions">Sessions</button>
      </div>`;
-  $('#navOverview').onclick=()=>showPanel('#pr-viewMain','Overview','Store snapshot');
+  $('#navOverview').onclick=()=>showPropView('#pr-viewMain','Overview','Store snapshot');
   function drop(btn,sub){return()=>{const open=sub.classList.contains('show');$$('.adm-sub').forEach(s=>s.classList.remove('show'));$$('.adm-drop').forEach(b=>b.classList.remove('open'));if(!open){sub.classList.add('show');btn.classList.add('open')}}}
   $('#navProducts').onclick=drop($('#navProducts'),$('#subProducts'));
   $('#navSettings').onclick=drop($('#navSettings'),$('#subSettings'));
-  $('#navAddProd').onclick=()=>{editId=null;photoData=null;clearForm();showPanel('#pr-viewAdd','Add Product','Catalog item')};
-  $('#navProdMgmt').onclick=()=>showPanel('#pr-viewProdHub','Products','Manage catalog');
-  $('#navBiz')&&($('#navBiz').onclick=()=>{showPanel('#pr-viewBizSettings','Business & GST','Invoice identity');loadBizSettings()});
-$('#navDatabase').onclick=()=>showPanel('#pr-viewDatabase','Database','Export · import · clean');
-  $('#navLogs').onclick=()=>showPanel('#pr-viewLogs','Logs','Payments · inventory · sessions');
-  $('#navShifts').onclick=()=>showPanel('#pr-viewShifts','Shifts','Shift history');
-  $('#navSessions').onclick=()=>showPanel('#pr-viewSessions','Sessions','Device sessions');
+  $('#navAddProd').onclick=()=>{editId=null;photoData=null;clearForm();showPropView('#pr-viewAdd','Add Product','Catalog item')};
+  $('#navProdMgmt').onclick=()=>showPropView('#pr-viewProdHub','Products','Manage catalog');
+  $('#navBiz')&&($('#navBiz').onclick=()=>{showPropView('#pr-viewBizSettings','Business & GST','Invoice identity');loadBizSettings()});
+$('#navDatabase').onclick=()=>showPropView('#pr-viewDatabase','Database','Export · import · clean');
+  $('#navLogs').onclick=()=>showPropView('#pr-viewLogs','Logs','Payments · inventory · sessions');
+  $('#navShifts').onclick=()=>showPropView('#pr-viewShifts','Shifts','Shift history');
+  $('#navSessions').onclick=()=>showPropView('#pr-viewSessions','Sessions','Device sessions');
   
 }
 buildDrawer();
@@ -1863,8 +2014,8 @@ function clearForm(){
   if($('#pr-pUnit'))$('#pr-pUnit').value='pcs';if($('#pr-pTaxInc'))$('#pr-pTaxInc').checked=false;
   $('#pr-btnSaveProd').textContent='Save product';
 }
-$('#pr-pPhoto').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{photoData=r.result;$('#pr-pPrev').innerHTML='<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover">'};r.readAsDataURL(f)};
-$('#pr-pLivePhoto').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.capture='environment';i.onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{photoData=r.result;$('#pr-pPrev').innerHTML='<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover">'};r.readAsDataURL(f)};i.click()};
+$('#pr-pPhoto').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{photoData=await compressImageDataUrl(r.result,800,0.72);$('#pr-pPrev').innerHTML='<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover">'};r.readAsDataURL(f)};
+$('#pr-pLivePhoto').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.capture='environment';i.onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{photoData=await compressImageDataUrl(r.result,800,0.72);$('#pr-pPrev').innerHTML='<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover">'};r.readAsDataURL(f)};i.click()};
 $('#pr-pExpiry').addEventListener('input',()=>{let v=$('#pr-pExpiry').value.replace(/\D/g,'').slice(0,8);if(v.length>=5)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);else if(v.length>=3)v=v.slice(0,2)+'/'+v.slice(2);$('#pr-pExpiry').value=v});
 
 $('#pr-btnSaveProd').onclick=async()=>{
@@ -1873,7 +2024,7 @@ $('#pr-btnSaveProd').onclick=async()=>{
   let barcode=($('#pr-pBarcode').value||'').trim();if(!barcode)barcode='AB'+Date.now().toString().slice(-10);
   const data={name,price,cost:+$('#pr-pCost').value||0,stock:+$('#pr-pStock').value||0,minStock:+$('#pr-pMinStock').value||0,tax:+$('#pr-pTax').value||0,unit:$('#pr-pUnit').value||'pcs',cat:($('#pr-pCat').value||'General').trim()||'General',sku:($('#pr-pSku').value||'').trim(),barcode,hsn:($('#pr-pHsn').value||'').trim(),expiry:($('#pr-pExpiry').value||'').trim(),taxInc:!!$('#pr-pTaxInc').checked,photo:photoData||null};
   if(editId){data.id=editId;await put('products',data);toast('Updated')}else{await put('products',data);toast('Saved')}
-  editId=null;clearForm();showPanel('#pr-viewProdHub','Products','Manage catalog');
+  editId=null;clearForm();showPropView('#pr-viewProdHub','Products','Manage catalog');
 };
 
 /* barcode scan */
@@ -1899,10 +2050,10 @@ async function loadHubNotif(){
   });
   $('#pr-hubNotif').innerHTML=items.length?items.slice(0,40).map(i=>`<div style="padding:10px 0;border-bottom:1px solid #f1f5f9"><b style="color:${i.c};font-size:12px">${i.t}</b><div style="font-size:13px;font-weight:600;margin-top:2px">${i.d}</div></div>`).join(''):'<div style="font-size:22px;font-weight:800;text-align:center;padding:16px">None</div>';
 }
-$('#pr-btnInv').onclick=()=>showPanel('#pr-viewInventory','Inventory','Stock adjust · log');
-$('#pr-btnInfo').onclick=()=>showPanel('#pr-viewInfo','Product info','Tap for details');
-$('#pr-btnCoupons').onclick=()=>showPanel('#pr-viewCoupons','Coupons','Discounts');
-$('#pr-btnPriceList').onclick=()=>{showPanel('#pr-viewPriceList','Price lists','Per customer prices');renderPL()};
+$('#pr-btnInv').onclick=()=>showPropView('#pr-viewInventory','Inventory','Stock adjust · log');
+$('#pr-btnInfo').onclick=()=>showPropView('#pr-viewInfo','Product info','Tap for details');
+$('#pr-btnCoupons').onclick=()=>showPropView('#pr-viewCoupons','Coupons','Discounts');
+$('#pr-btnPriceList').onclick=()=>{showPropView('#pr-viewPriceList','Price lists','Per customer prices');renderPL()};
 async function renderPL(){
   const list=await all('pricelists');
   $('#pr-plList').innerHTML=list.length?list.map(p=>`<div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:var(--sh)"><b>${p.name||'List'}</b><div style="font-size:12px;color:#64748b">Product #${p.productId}${p.partyId?' · Party #'+p.partyId:''} · ${fmt(p.price)}</div></div>`).join(''):'<div class="empty" style="font-size:22px;font-weight:800">None</div>';
@@ -1947,20 +2098,55 @@ async function renderInvLog(){
   $('#pr-invLog').innerHTML=logs.length?'<table><thead><tr><th>DATE</th><th>PRODUCT</th><th>DELTA</th><th>REASON</th></tr></thead><tbody>'+logs.map(l=>`<tr><td>${(l.at||'').slice(0,10)}</td><td>${l.name||''}</td><td style="font-weight:700;color:${l.delta<0?'#dc2626':'#059669'}">${l.delta>0?'+':''}${l.delta}</td><td>${l.reason||''}</td></tr>`).join('')+'</tbody></table>':'<div class="empty" style="padding:16px">No movements</div>';
 }
 $('#pr-invApply').onclick=async()=>{
-  const id=+$('#pr-invProdId').value,delta=+$('#pr-invDelta').value,reason=($('#pr-invReason').value||'').trim();
+  const id=+$('#pr-invProdId').value,delta=+$('#pr-invDelta').value;let reason=($('#pr-invReason').value||'').trim();if(reason==='Other')reason=($('#pr-invReasonOther').value||'').trim()||'Other';
   if(!id||!delta){toast('Select product & enter change');return}
+  if(!reason){toast('Reason is required');return}
   const prod=await getById('products',id);if(!prod){toast('Not found');return}
   prod.stock=Math.max(0,(prod.stock||0)+delta);await put('products',prod);
   await put('inventoryLogs',{productId:id,name:prod.name,delta,reason,at:new Date().toISOString()});
-  toast('Stock updated');$('#pr-invDelta').value='';$('#pr-invReason').value='';fillInvProducts();renderInvLog();
+  toast('Stock updated');$('#pr-invDelta').value='';$('#pr-invReason').value='';if($('#pr-invReasonOther'))$('#pr-invReasonOther').value='';fillInvProducts();renderInvLog();
 };
+
+if($('#pr-invReason'))$('#pr-invReason').onchange=()=>{const o=$('#pr-invReasonOther');if(o)o.style.display=$('#pr-invReason').value==='Other'?'block':'none'};
+(function setupPurchase(){
+  const inp=$('#pr-purProdSearch'),drop=$('#pr-purProdDrop');
+  if(!inp||!drop)return;
+  inp.oninput=async()=>{
+    const list=await all('products');const s=(inp.value||'').trim().toLowerCase();
+    if(!s){drop.style.display='none';return}
+    const f=list.filter(p=>(p.name||'').toLowerCase().includes(s)||String(p.barcode||'').includes(s)).slice(0,30);
+    drop.innerHTML=f.map(p=>`<div class="item" data-id="${p.id}"><div><div class="n">${p.name}</div><div class="m">Stock ${p.stock??0}</div></div><div class="p">${fmt(p.price)}</div></div>`).join('')||'<div class="item"><div class="n">No match</div></div>';
+    drop.style.display='block';
+    drop.querySelectorAll('.item[data-id]').forEach(el=>el.onclick=()=>{
+      $('#pr-purProdId').value=el.dataset.id;inp.value=el.querySelector('.n').textContent;drop.style.display='none';
+      const p=list.find(x=>+x.id===+el.dataset.id);if(p&&p.cost)$('#pr-purCost').value=p.cost;
+    });
+  };
+})();
+if($('#pr-purSave'))$('#pr-purSave').onclick=async()=>{
+  const pid=+$('#pr-purProdId').value,qty=+$('#pr-purQty').value,cost=+$('#pr-purCost').value||0;
+  if(!pid||!qty||qty<=0){toast('Product & qty required');return}
+  const prod=await getById('products',pid);if(!prod){toast('Product not found');return}
+  const total=qty*cost;
+  const pur={supplier:($('#pr-purSupplier').value||'').trim()||'Supplier',date:new Date().toISOString(),total,status:'ok',note:($('#pr-purNote').value||'').trim()};
+  const purId=await put('purchases',pur);
+  await put('purchaseItems',{purchaseId:purId,productId:pid,name:prod.name,qty,cost,lineTotal:total});
+  prod.stock=(prod.stock||0)+qty;
+  if(cost>0)prod.cost=cost;
+  await put('products',prod);
+  await put('inventoryLogs',{productId:pid,name:prod.name,delta:qty,reason:'Purchase',at:new Date().toISOString()});
+  toast('Purchase saved · stock +'+qty);
+  $('#pr-purQty').value='1';$('#pr-purNote').value='';$('#pr-purProdId').value='';$('#pr-purProdSearch').value='';
+  fillInvProducts();renderInvLog();
+};
+
 
 async function renderInfoList(){
   const list=await all('products');const q=($('#pr-infoSearch').value||'').trim().toLowerCase();
   let f=list;if(q)f=f.filter(p=>(p.name||'').toLowerCase().includes(q)||String(p.barcode||'').includes(q));
   if(!f.length){$('#pr-infoList').innerHTML='<div class="empty" style="font-size:22px;font-weight:800">None</div>';return}
   $('#pr-infoList').innerHTML=f.map(p=>`<div class="pi" data-id="${p.id}"><div class="thumb">${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:productIcon(p)}</div><div class="info"><div class="name">${p.name||''}</div><div class="meta">Stock ${p.stock||0} · ${fmt(p.price)}</div></div></div>`).join('');
-  $$('#infoList .pi').forEach(row=>row.onclick=async()=>{
+  $$('#pr-infoList .pi').forEach(row=>row.onclick=async()=>{
     const prod=await getById('products',+row.dataset.id);if(!prod)return;
     const body=$('#pr-prodCardBody');
     body.innerHTML=`<div style="display:flex;justify-content:flex-end"><button type="button" id="cardX" style="border:0;background:#f1f5f9;width:32px;height:32px;border-radius:50%;font-size:18px;font-weight:700">×</button></div>${prod.photo?`<img src="${prod.photo}">`:'<div style="height:80px;background:#f1f5f9;border-radius:12px;margin-bottom:12px"></div>'}\n      <h3 style="font-size:18px;font-weight:800;margin-bottom:8px">${prod.name||''}</h3>
@@ -1979,7 +2165,7 @@ async function renderInfoList(){
       $('#pr-pStock').value=prod.stock??'';$('#pr-pMinStock').value=prod.minStock??'';$('#pr-pUnit').value=prod.unit||'pcs';
       $('#pr-pTax').value=prod.tax??'';$('#pr-pCat').value=prod.cat||'';$('#pr-pSku').value=prod.sku||'';
       $('#pr-pBarcode').value=prod.barcode||'';$('#pr-pHsn').value=prod.hsn||'';$('#pr-pExpiry').value=prod.expiry||'';
-      $('#pr-pTaxInc').checked=!!prod.taxInc;$('#pr-btnSaveProd').textContent='Update product';showPanel('#pr-viewAdd','Edit Product','Update item');
+      $('#pr-pTaxInc').checked=!!prod.taxInc;$('#pr-btnSaveProd').textContent='Update product';showPropView('#pr-viewAdd','Edit Product','Update item');
     };
     $('#cardDel').onclick=async()=>{if(!(await appConfirm('Delete','Delete this product?','Delete',true)))return;await del('products',prod.id);$('#pr-prodCardM').style.display='none';toast('Deleted');renderInfoList()};
   });
@@ -2085,16 +2271,16 @@ async function refresh(){
 
 /* navigation history */
 let uiStack=['#pr-viewMain'];
-const _showPanel=showPanel;
-showPanel=function(id,title,sub){
-  _showPanel(id,title,sub);
+const _showPropView=showPropView;
+showPropView=function(id,title,sub){
+  _showPropView(id,title,sub);
   if(id==='#pr-viewMain')uiStack=['#pr-viewMain'];
   else if(uiStack[uiStack.length-1]!==id)uiStack.push(id);
   history.pushState({prop:id},'',location.pathname);
 };
 $$('.backToHub').forEach(b=>b.onclick=()=>{
-  if(b.dataset.back==='main')showPanel('#pr-viewMain','Overview','Store snapshot');
-  else showPanel('#pr-viewProdHub','Products','Manage catalog');
+  if(b.dataset.back==='main')showPropView('#pr-viewMain','Overview','Store snapshot');
+  else showPropView('#pr-viewProdHub','Products','Manage catalog');
 });
 window.addEventListener('popstate',()=>{
   if($('#pr-prodCardM')&&$('#pr-prodCardM').style.display==='flex'){$('#pr-prodCardM').style.display='none';history.pushState({prop:1},'',location.pathname);return}
@@ -2102,7 +2288,7 @@ window.addEventListener('popstate',()=>{
   if($('#pr-pScanM')&&$('#pr-pScanM').style.display!=='none'&&$('#pr-pScanM').style.display!==''){stopPScan();history.pushState({prop:1},'',location.pathname);return}
   if(drawerOpen){closeDrawer();history.pushState({prop:1},'',location.pathname);return}
   const on=[...document.querySelectorAll('.panel-view.on')];
-  if(on.length&&on[0].id!=='viewMain'){showPanel('#pr-viewMain','Overview','Store snapshot');history.pushState({prop:1},'',location.pathname)}
+  if(on.length&&on[0].id!=='viewMain'){showPropView('#pr-viewMain','Overview','Store snapshot');history.pushState({prop:1},'',location.pathname)}
 });
 history.replaceState({prop:1},'',location.pathname);
 
@@ -2176,7 +2362,7 @@ function loadBizSettings(){
   if($('#pr-bizFooter'))$('#pr-bizFooter').value=b.footer||'';
   if($('#pr-bizGstEnabled'))$('#pr-bizGstEnabled').checked=!!(b.gstEnabled!==false && (b.gstin||b.gst));
 }
-if($('#pr-bizSave'))$('#pr-bizSave').onclick=()=>{
+if($('#pr-bizSave'))$('#pr-bizSave').onclick=async()=>{
   const prev=JSON.parse(localStorage.getItem('atom_prefs')||'{}');
   const next={...prev,
     store:($('#pr-bizStore').value||'').trim()||'Atom Bills',
@@ -2188,8 +2374,29 @@ if($('#pr-bizSave'))$('#pr-bizSave').onclick=()=>{
     footer:($('#pr-bizFooter').value||'').trim()||'Thank you!',
     gstEnabled:!!($('#pr-bizGstEnabled')&&$('#pr-bizGstEnabled').checked)
   };
+  // PIN management
+  const cur=($('#pr-pinCurrent')&&$('#pr-pinCurrent').value||'').trim();
+  const neu=($('#pr-pinNew')&&$('#pr-pinNew').value||'').trim();
+  const conf=($('#pr-pinConfirm')&&$('#pr-pinConfirm').value||'').trim();
+  let pinRow=null;try{pinRow=await getById('settings','propPin')}catch(e){}
+  const existing=pinRow&&pinRow.value?String(pinRow.value):'';
+  if(neu||conf||(existing&&cur)){
+    if(existing&&cur!==existing){toast('Current PIN incorrect');return}
+    if(neu){
+      if(!/^\d{4}$/.test(neu)){toast('PIN must be 4 digits');return}
+      if(neu!==conf){toast('PIN confirm mismatch');return}
+      await put('settings',{key:'propPin',value:neu});
+      next.hasPin=true;
+    } else if(existing&&cur===existing&&!neu){
+      // clear if confirm empty and user wants clear - only clear if both new empty and typed current
+      await put('settings',{key:'propPin',value:''});
+      next.hasPin=false;
+      toast('PIN cleared');
+    }
+  }
   localStorage.setItem('atom_prefs',JSON.stringify(next));
-  put('settings',{key:'brand',value:next}).catch(()=>{});
+  await put('settings',{key:'brand',value:next}).catch(()=>{});
+  ['pr-pinCurrent','pr-pinNew','pr-pinConfirm'].forEach(id=>{if($('#'+id))$('#'+id).value=''});
   toast('Business settings saved');
 };
 
@@ -2268,7 +2475,7 @@ async function renderReports(){
 async function renderInvoices(){
   const txs=(await all('transactions')).filter(t=>t.status!=='void').slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,100);
   $('#pr-invBody').innerHTML=txs.length?'<table><thead><tr><th>DATE</th><th>PARTY</th><th>AMT</th><th></th></tr></thead><tbody>'+txs.map(t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.title||'Sale'}</td><td>${fmt(t.amount)}</td><td><button type="button" data-tx="${t.id}" style="padding:6px 10px;border:0;border-radius:8px;background:#eef2ff;color:#4f46e5;font-weight:700;font-size:11px;font-family:inherit">View</button></td></tr>`).join('')+'</tbody></table>':'<div class="empty" style="padding:16px">None</div>';
-  $$('#invBody [data-tx]').forEach(b=>b.onclick=async()=>{
+  $$('#pr-invBody [data-tx]').forEach(b=>b.onclick=async()=>{
     const tx=await getById('transactions',b.dataset.tx);if(!tx)return;
     const url=await renderInvoicePng(tx);
     let m=$('#invPrevM');
@@ -2282,9 +2489,46 @@ async function renderReturns(){
   const txs=(await all('transactions')).filter(t=>t.type==='sale_return'||t.kind==='sales_return'||t.type==='purchase_return');
   $('#pr-retBody').innerHTML=txs.length?'<table><thead><tr><th>DATE</th><th>TYPE</th><th>AMT</th></tr></thead><tbody>'+txs.map(t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.type||t.kind||''}</td><td>${fmt(Math.abs(t.amount||0))}</td></tr>`).join('')+'</tbody></table>':'<div class="empty" style="padding:16px">None</div>';
 }
-$('#navReports')&&($('#navReports').onclick=()=>{showPanel('#pr-viewReports','Reports','Sales summary');renderReports()});
-$('#navInvoices')&&($('#navInvoices').onclick=()=>{showPanel('#pr-viewInvoices','Invoices','All bills');renderInvoices()});
-$('#navReturns')&&($('#navReturns').onclick=()=>{showPanel('#pr-viewReturns','Returns','Sales & purchase');renderReturns()});
+$('#navReports')&&($('#navReports').onclick=()=>{showPropView('#pr-viewReports','Reports','Sales summary');renderReports()});
+$('#navStmt')&&($('#navStmt').onclick=()=>{showPropView('#pr-viewCustStmt','Customer statement','Ledger');});
+
+async function renderCustomerStatement(partyId){
+  const box=$('#pr-stmtBody');if(!box)return;
+  const party=await getById('parties',partyId);if(!party){box.innerHTML='<div class="empty">Select a customer</div>';return}
+  const txs=(await all('transactions')).filter(t=>t.status!=='void'&&(+t.partyId===+partyId||(t.title&&party.name&&t.title===party.name)));
+  txs.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  let bal=0;
+  const rows=txs.map(t=>{
+    const a=+t.amount||0;
+    const due=t.status==='unpaid'||t.status==='partial'?(+t.balanceDue||a):0;
+    const paid=t.status==='paid'?a:(+t.received||0);
+    bal+=due;
+    return `<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.billNo||t.id||''}</td><td>${fmt(a)}</td><td>${fmt(paid)}</td><td>${fmt(due)}</td><td>${t.status||''}</td></tr>`;
+  }).join('');
+  box.innerHTML=`<div style="background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:var(--sh)">
+    <div style="font-weight:800;font-size:16px">${party.name||''}</div>
+    <div style="font-size:12px;color:#64748b">${party.phone||''}</div>
+    <div style="margin-top:8px;font-weight:700">Balance: ${fmt(party.balance||bal)}</div>
+  </div>
+  <table><thead><tr><th>Date</th><th>Bill</th><th>Amount</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
+  <tbody>${rows||'<tr><td colspan="6">No bills</td></tr>'}</tbody></table>`;
+}
+(function(){
+  const inp=$('#pr-stmtSearch'),drop=$('#pr-stmtDrop');
+  if(!inp)return;
+  inp.oninput=async()=>{
+    const q=(inp.value||'').trim().toLowerCase();
+    if(!q){drop.style.display='none';return}
+    const list=(await all('parties')).filter(p=>(p.type||'customer')!=='supplier'&&((p.name||'').toLowerCase().includes(q)||String(p.phone||'').includes(q))).slice(0,20);
+    drop.innerHTML=list.map(p=>`<div class="item" data-id="${p.id}"><div><div class="n">${p.name}</div><div class="m">${p.phone||''} · bal ${fmt(p.balance||0)}</div></div></div>`).join('')||'<div class="item"><div class="n">None</div></div>';
+    drop.style.display='block';
+    drop.querySelectorAll('.item[data-id]').forEach(el=>el.onclick=()=>{$('#pr-stmtPartyId').value=el.dataset.id;inp.value=el.querySelector('.n').textContent;drop.style.display='none'});
+  };
+  if($('#pr-stmtGo'))$('#pr-stmtGo').onclick=()=>{const id=+$('#pr-stmtPartyId').value;if(!id)return toast('Select customer');renderCustomerStatement(id)};
+})();
+
+$('#navInvoices')&&($('#navInvoices').onclick=()=>{showPropView('#pr-viewInvoices','Invoices','All bills');renderInvoices()});
+$('#navReturns')&&($('#navReturns').onclick=()=>{showPropView('#pr-viewReturns','Returns','Sales & purchase');renderReturns()});
 $('#navSales')&&($('#navSales').onclick=()=>{const sub=$('#subSales');const open=sub.classList.contains('show');$$('.adm-sub').forEach(s=>s.classList.remove('show'));$$('.adm-drop').forEach(b=>b.classList.remove('open'));if(!open){sub.classList.add('show');$('#navSales').classList.add('open')}});
 
 /* shifts */
