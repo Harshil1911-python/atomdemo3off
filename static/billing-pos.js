@@ -8,7 +8,7 @@
     let n = row && row.value != null ? +row.value : 0;
     n += 1;
     await put('settings', { key: 'billSeq', value: n });
-    return 'atom' + n;
+    return 'AB' + String(n).padStart(4, '0');
   }
 
   async function getRoundMode() {

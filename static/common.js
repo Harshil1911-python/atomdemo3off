@@ -133,46 +133,50 @@ async function renderInvoicePng(tx){
   const b=getBrand();
   const gstOn=b.gstEnabled!==false && !!(b.gstin||b.gst||tx.gst);
   const items=tx.items||[];
+  const scale=2;
   const W=420,pad=18;
-  const lineH=18;
-  const headerH=gstOn?168:130;
-  const taxRows=gstOn?4:0;
-  const itemsH=Math.max(items.length,1)*lineH+48;
-  const H=headerH+itemsH+120+taxRows*16+40;
-  const c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');
+  const lineH=20;
+  const headerH=gstOn?175:135;
+  const taxRows=gstOn?5:0;
+  const itemsH=Math.max(items.length,1)*lineH+50;
+  const H=headerH+itemsH+130+taxRows*18+50;
+  const c=document.createElement('canvas');c.width=W*scale;c.height=H*scale;
+  const ctx=c.getContext('2d');
+  ctx.scale(scale,scale);
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality='high';
   ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-  // Header
   ctx.fillStyle='#0f172a';ctx.textAlign='center';
-  ctx.font='bold 17px system-ui,sans-serif';ctx.fillText(b.store||'Atom Bills',W/2,26);
+  ctx.font='bold 18px system-ui,sans-serif';ctx.fillText(b.store||'Atom Bills',W/2,28);
   ctx.font='11px system-ui,sans-serif';ctx.fillStyle='#64748b';
-  let hy=42;
-  if(b.addr){ctx.fillText(b.addr.slice(0,48),W/2,hy);hy+=14}
+  let hy=44;
+  if(b.addr){ctx.fillText(b.addr.slice(0,52),W/2,hy);hy+=14}
   if(b.phone){ctx.fillText('Ph: '+b.phone,W/2,hy);hy+=14}
-  if(gstOn&&b.gstin){ctx.fillStyle='#0f172a';ctx.font='bold 11px system-ui';ctx.fillText('GSTIN: '+b.gstin,W/2,hy);hy+=14}
-  if(gstOn){ctx.font='10px system-ui';ctx.fillStyle='#64748b';ctx.fillText('TAX INVOICE',W/2,hy);hy+=12}
+  if(gstOn&&b.gstin){ctx.fillStyle='#0f172a';ctx.font='bold 12px system-ui';ctx.fillText('GSTIN: '+b.gstin,W/2,hy);hy+=15}
+  if(gstOn){ctx.font='bold 11px system-ui';ctx.fillStyle='#4f46e5';ctx.fillText('TAX INVOICE',W/2,hy);hy+=12}
   ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,hy+4);ctx.lineTo(W-pad,hy+4);ctx.stroke();
-  let y=hy+20;
-  ctx.fillStyle='#0f172a';ctx.font='11px system-ui';ctx.textAlign='left';
+  let y=hy+22;
+  ctx.fillStyle='#0f172a';ctx.font='12px system-ui';ctx.textAlign='left';
   ctx.fillText('Bill: '+(tx.billNo||tx.id||''),pad,y);
-  ctx.textAlign='right';ctx.fillText((tx.date||'').slice(0,16).replace('T',' '),W-pad,y);y+=14;
+  ctx.textAlign='right';
+  let dateStr=tx.date||'';
+  try{dateStr=new Date(tx.date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})}catch(e){}
+  ctx.fillText(dateStr,W-pad,y);y+=15;
   ctx.textAlign='left';ctx.fillText('Buyer: '+(tx.title||'Cash Sale'),pad,y);
-  ctx.textAlign='right';ctx.fillText((tx.payMethod||'cash').toUpperCase()+(tx.status==='unpaid'?' · UNPAID':tx.status==='partial'?' · PARTIAL':tx.status==='void'?' · VOID':''),W-pad,y);y+=10;
-  ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=16;
-  // Columns
+  ctx.textAlign='right';ctx.fillText((tx.payMethod||'cash').toUpperCase()+(tx.status==='unpaid'?' · UNPAID':tx.status==='partial'?' · PARTIAL':tx.status==='void'?' · VOID':''),W-pad,y);y+=12;
+  ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=18;
   ctx.font='bold 10px system-ui';ctx.textAlign='left';ctx.fillStyle='#64748b';
-  ctx.fillText('#',pad,y);
-  ctx.fillText('ITEM',pad+18,y);
+  ctx.fillText('#',pad,y);ctx.fillText('ITEM',pad+18,y);
   if(gstOn)ctx.fillText('HSN',W*0.42,y);
   ctx.textAlign='center';ctx.fillText('QTY',W*0.58,y);
-  ctx.textAlign='right';ctx.fillText('RATE',W*0.78,y);
-  ctx.fillText('AMT',W-pad,y);
-  y+=6;ctx.strokeStyle='#f1f5f9';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=14;
-  ctx.font='11px system-ui';ctx.fillStyle='#0f172a';
+  ctx.textAlign='right';ctx.fillText('RATE',W*0.78,y);ctx.fillText('AMT',W-pad,y);
+  y+=6;ctx.strokeStyle='#f1f5f9';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=16;
+  ctx.font='12px system-ui';ctx.fillStyle='#0f172a';
   let i=1;
   items.forEach(it=>{
     const line=(+it.qty||0)*(+it.price||0);
     ctx.textAlign='left';ctx.fillText(String(i++),pad,y);
-    ctx.fillText((it.name||'').slice(0,gstOn?16:22),pad+18,y);
+    ctx.fillText((it.name||'').slice(0,gstOn?16:24),pad+18,y);
     if(gstOn)ctx.fillText((it.hsn||'—').toString().slice(0,8),W*0.42,y);
     ctx.textAlign='center';ctx.fillText(String(it.qty||0),W*0.58,y);
     ctx.textAlign='right';ctx.fillText(Number(it.price||0).toFixed(2),W*0.78,y);
@@ -184,9 +188,9 @@ async function renderInvoicePng(tx){
   const taxable=sub||Math.max(0,tot-gst);
   const cgst=gst/2,sgst=gst/2;
   function row(label,val,bold,col){
-    ctx.font=(bold?'bold ':'')+'11px system-ui';ctx.textAlign='left';ctx.fillStyle=col||'#64748b';
+    ctx.font=(bold?'bold ':'')+'12px system-ui';ctx.textAlign='left';ctx.fillStyle=col||'#64748b';
     ctx.fillText(label,pad,y);ctx.textAlign='right';ctx.fillStyle=col||'#0f172a';
-    ctx.fillText('₹'+Number(val).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=16;
+    ctx.fillText('₹'+Number(val).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=17;
   }
   row('Taxable value',taxable);
   if(disc)row('Discount',-disc,false,'#dc2626');
@@ -194,19 +198,12 @@ async function renderInvoicePng(tx){
     const shopState=String(b.state||'').slice(0,2);
     const buyerState=String(tx.buyerState||tx.state||shopState).slice(0,2);
     const inter=shopState&&buyerState&&shopState!==buyerState;
-    if(inter){
-      row('IGST @ integrated',gst,true);
-    } else {
-      row('CGST',cgst);
-      row('SGST',sgst);
-      row('Total tax',gst,true);
-    }
+    if(inter) row('IGST',gst,true);
+    else { row('CGST',cgst); row('SGST',sgst); row('Total tax',gst,true); }
     ctx.font='9px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='left';
-    ctx.fillText(inter?('Inter-state · Place of supply: '+buyerState):('Intra-state · State '+shopState),pad,y);y+=12;
-  } else if(gst){
-    row('GST',gst);
-  }
-  ctx.font='bold 14px system-ui';ctx.textAlign='left';ctx.fillStyle='#0f172a';
+    ctx.fillText(inter?('Inter-state · POS: '+buyerState):('Intra-state · State '+(shopState||'—')),pad,y);y+=14;
+  } else if(gst){ row('GST',gst); }
+  ctx.font='bold 15px system-ui';ctx.textAlign='left';ctx.fillStyle='#0f172a';
   ctx.fillText('Grand Total',pad,y);ctx.textAlign='right';
   ctx.fillText('₹'+Number(tot).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=22;
   if(tx.received!=null&&tx.balanceDue>0){
@@ -214,13 +211,9 @@ async function renderInvoicePng(tx){
     ctx.fillText('Received',pad,y);ctx.textAlign='right';ctx.fillStyle='#0f172a';ctx.fillText('₹'+Number(tx.received).toLocaleString('en-IN'),W-pad,y);y+=14;
     ctx.textAlign='left';ctx.fillStyle='#b45309';ctx.fillText('Balance due',pad,y);ctx.textAlign='right';ctx.fillText('₹'+Number(tx.balanceDue).toLocaleString('en-IN'),W-pad,y);y+=16;
   }
-  if(gstOn){
-    ctx.font='9px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
-    ctx.fillText('Supply: '+(b.state?('State '+b.state):'Intra-state')+' · This is a computer generated invoice',W/2,y);y+=12;
-  }
   ctx.font='11px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
   ctx.fillText(b.footer||'Thank you!',W/2,y);
-  return c.toDataURL('image/png');
+  return c.toDataURL('image/png',1.0);
 }
 async function sharePngDataUrl(dataUrl,filename){
   try{

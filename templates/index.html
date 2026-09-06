@@ -299,6 +299,12 @@ html,body{height:100%;margin:0}
 .pi:active{background:#f1f5f9}
 #pr-infoList .pi{padding:10px;border-radius:12px;margin-bottom:6px;background:#fff;box-shadow:var(--sh)}
 
+
+.db-actions-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.db-actions-grid .save,.db-actions-grid button{width:100%;margin:0!important}
+.db-section{background:#fff;border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:12px}
+.db-section .sec-title{margin-bottom:10px}
+@media(min-width:400px){.db-actions-grid.two{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -370,7 +376,7 @@ html,body{height:100%;margin:0}
 <div class="sheet" id="sheetMore" style="height:72%;max-height:560px">
   <div class="sheet-h"><h3>More actions</h3><button type="button" id="sheetMoreX">×</button></div>
   <div class="sheet-b" id="sheetMoreB">
-    <div class="act-shift"><div><b>Shift</b><small id="shiftStatus">Closed</small></div><button type="button" class="sw" id="btnShift"><i></i></button></div>
+    <button type="button" class="sw" id="btnShift"><i></i></button></div>
     <div class="act-section">Returns</div>
     <div class="act-grid">
       <button type="button" class="act-ico" data-act="saleret"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></div><span>Sales Returns</span></button>
@@ -580,6 +586,11 @@ html,body{height:100%;margin:0}
         <div style="display:flex;gap:6px"><input id="pr-pBarcode" placeholder="Scan or type" style="flex:1"><button type="button" id="pr-pScanBc" style="padding:10px 14px;border:0;border-radius:10px;background:var(--p);color:#fff;font-weight:700;font-size:12px;font-family:inherit">Scan</button></div>
         <div class="row2"><div><label>HSN</label><input id="pr-pHsn"></div><div><label>Expiry (dd/mm/yyyy)</label><input id="pr-pExpiry" placeholder="dd/mm/yyyy" maxlength="10"></div></div>
         <label style="display:flex;align-items:center;gap:10px;color:var(--t)"><input type="checkbox" id="pr-pTaxInc" style="width:18px;height:18px"> Price includes tax</label>
+        <label style="display:flex;align-items:flex-start;gap:10px;margin-top:10px;padding:12px;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0"><input type="checkbox" id="pr-pIsPurchase" style="width:18px;height:18px;margin-top:2px"> <span><b>It is a purchase</b><br><small style="color:#64748b;font-weight:500">Record in purchase book &amp; add stock</small></span></label>
+        <div id="pr-pPurExtra" style="display:none;margin-top:8px">
+          <label>Supplier (optional)</label><input id="pr-pSupplier" placeholder="Supplier name">
+          <label>Purchase qty</label><input id="pr-pPurQty" type="number" min="1" step="1" value="1">
+        </div>
         <button type="button" class="save" id="pr-btnSaveProd">Save product</button>
       </div>
     </div>
@@ -593,7 +604,7 @@ html,body{height:100%;margin:0}
         <button type="button" class="hub-btn" id="pr-btnInv"><b>Inventory</b><span>Stock adjust · log</span></button>
         <button type="button" class="hub-btn" id="pr-btnInfo"><b>Product info</b><span>Details · edit</span></button>
         <button type="button" class="hub-btn" id="pr-btnCoupons"><b>Coupons</b><span>Discounts</span></button>
-        <button type="button" class="hub-btn" id="pr-btnPriceList"><b>Price list</b><span>Coming next</span></button>
+        <button type="button" class="hub-btn" id="pr-btnPriceList"><b>Price list</b><span>Special rates</span></button>
       </div>
     </div>
 
@@ -762,7 +773,7 @@ html,body{height:100%;margin:0}
     </div>
 
     <div class="panel-view" id="pr-viewDatabase">
-      <div class="af">
+      <div class="af db-section"><div class="sec-title">Export</div><div class="db-actions-grid">
         <button type="button" class="save" id="pr-btnExportDb">Export database (.txt)</button>
         <button type="button" class="save btn-dark" id="pr-btnImportDb">Import database (.txt)</button>
         <input type="file" id="pr-importDbFile" accept=".txt,application/json,text/plain" style="display:none">
@@ -797,7 +808,7 @@ name | phone | email | address | balance</pre>
       <div id="pr-logBody" class="book-wrap"></div>
     </div>
 
-    <div class="panel-view" id="pr-viewShifts">
+    <div class="panel-view" id="pr-viewShifts" style="display:none!important">
       <div class="stats" id="pr-shiftStats" style="margin-bottom:14px"></div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
         <button type="button" class="save" id="pr-btnShiftOpen">Open shift</button>
@@ -1096,46 +1107,50 @@ async function renderInvoicePng(tx){
   const b=getBrand();
   const gstOn=b.gstEnabled!==false && !!(b.gstin||b.gst||tx.gst);
   const items=tx.items||[];
+  const scale=2;
   const W=420,pad=18;
-  const lineH=18;
-  const headerH=gstOn?168:130;
-  const taxRows=gstOn?4:0;
-  const itemsH=Math.max(items.length,1)*lineH+48;
-  const H=headerH+itemsH+120+taxRows*16+40;
-  const c=document.createElement('canvas');c.width=W;c.height=H;const ctx=c.getContext('2d');
+  const lineH=20;
+  const headerH=gstOn?175:135;
+  const taxRows=gstOn?5:0;
+  const itemsH=Math.max(items.length,1)*lineH+50;
+  const H=headerH+itemsH+130+taxRows*18+50;
+  const c=document.createElement('canvas');c.width=W*scale;c.height=H*scale;
+  const ctx=c.getContext('2d');
+  ctx.scale(scale,scale);
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality='high';
   ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-  // Header
   ctx.fillStyle='#0f172a';ctx.textAlign='center';
-  ctx.font='bold 17px system-ui,sans-serif';ctx.fillText(b.store||'Atom Bills',W/2,26);
+  ctx.font='bold 18px system-ui,sans-serif';ctx.fillText(b.store||'Atom Bills',W/2,28);
   ctx.font='11px system-ui,sans-serif';ctx.fillStyle='#64748b';
-  let hy=42;
-  if(b.addr){ctx.fillText(b.addr.slice(0,48),W/2,hy);hy+=14}
+  let hy=44;
+  if(b.addr){ctx.fillText(b.addr.slice(0,52),W/2,hy);hy+=14}
   if(b.phone){ctx.fillText('Ph: '+b.phone,W/2,hy);hy+=14}
-  if(gstOn&&b.gstin){ctx.fillStyle='#0f172a';ctx.font='bold 11px system-ui';ctx.fillText('GSTIN: '+b.gstin,W/2,hy);hy+=14}
-  if(gstOn){ctx.font='10px system-ui';ctx.fillStyle='#64748b';ctx.fillText('TAX INVOICE',W/2,hy);hy+=12}
+  if(gstOn&&b.gstin){ctx.fillStyle='#0f172a';ctx.font='bold 12px system-ui';ctx.fillText('GSTIN: '+b.gstin,W/2,hy);hy+=15}
+  if(gstOn){ctx.font='bold 11px system-ui';ctx.fillStyle='#4f46e5';ctx.fillText('TAX INVOICE',W/2,hy);hy+=12}
   ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,hy+4);ctx.lineTo(W-pad,hy+4);ctx.stroke();
-  let y=hy+20;
-  ctx.fillStyle='#0f172a';ctx.font='11px system-ui';ctx.textAlign='left';
+  let y=hy+22;
+  ctx.fillStyle='#0f172a';ctx.font='12px system-ui';ctx.textAlign='left';
   ctx.fillText('Bill: '+(tx.billNo||tx.id||''),pad,y);
-  ctx.textAlign='right';ctx.fillText((tx.date||'').slice(0,16).replace('T',' '),W-pad,y);y+=14;
+  ctx.textAlign='right';
+  let dateStr=tx.date||'';
+  try{dateStr=new Date(tx.date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})}catch(e){}
+  ctx.fillText(dateStr,W-pad,y);y+=15;
   ctx.textAlign='left';ctx.fillText('Buyer: '+(tx.title||'Cash Sale'),pad,y);
-  ctx.textAlign='right';ctx.fillText((tx.payMethod||'cash').toUpperCase()+(tx.status==='unpaid'?' · UNPAID':tx.status==='partial'?' · PARTIAL':tx.status==='void'?' · VOID':''),W-pad,y);y+=10;
-  ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=16;
-  // Columns
+  ctx.textAlign='right';ctx.fillText((tx.payMethod||'cash').toUpperCase()+(tx.status==='unpaid'?' · UNPAID':tx.status==='partial'?' · PARTIAL':tx.status==='void'?' · VOID':''),W-pad,y);y+=12;
+  ctx.strokeStyle='#e2e8f0';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=18;
   ctx.font='bold 10px system-ui';ctx.textAlign='left';ctx.fillStyle='#64748b';
-  ctx.fillText('#',pad,y);
-  ctx.fillText('ITEM',pad+18,y);
+  ctx.fillText('#',pad,y);ctx.fillText('ITEM',pad+18,y);
   if(gstOn)ctx.fillText('HSN',W*0.42,y);
   ctx.textAlign='center';ctx.fillText('QTY',W*0.58,y);
-  ctx.textAlign='right';ctx.fillText('RATE',W*0.78,y);
-  ctx.fillText('AMT',W-pad,y);
-  y+=6;ctx.strokeStyle='#f1f5f9';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=14;
-  ctx.font='11px system-ui';ctx.fillStyle='#0f172a';
+  ctx.textAlign='right';ctx.fillText('RATE',W*0.78,y);ctx.fillText('AMT',W-pad,y);
+  y+=6;ctx.strokeStyle='#f1f5f9';ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();y+=16;
+  ctx.font='12px system-ui';ctx.fillStyle='#0f172a';
   let i=1;
   items.forEach(it=>{
     const line=(+it.qty||0)*(+it.price||0);
     ctx.textAlign='left';ctx.fillText(String(i++),pad,y);
-    ctx.fillText((it.name||'').slice(0,gstOn?16:22),pad+18,y);
+    ctx.fillText((it.name||'').slice(0,gstOn?16:24),pad+18,y);
     if(gstOn)ctx.fillText((it.hsn||'—').toString().slice(0,8),W*0.42,y);
     ctx.textAlign='center';ctx.fillText(String(it.qty||0),W*0.58,y);
     ctx.textAlign='right';ctx.fillText(Number(it.price||0).toFixed(2),W*0.78,y);
@@ -1147,9 +1162,9 @@ async function renderInvoicePng(tx){
   const taxable=sub||Math.max(0,tot-gst);
   const cgst=gst/2,sgst=gst/2;
   function row(label,val,bold,col){
-    ctx.font=(bold?'bold ':'')+'11px system-ui';ctx.textAlign='left';ctx.fillStyle=col||'#64748b';
+    ctx.font=(bold?'bold ':'')+'12px system-ui';ctx.textAlign='left';ctx.fillStyle=col||'#64748b';
     ctx.fillText(label,pad,y);ctx.textAlign='right';ctx.fillStyle=col||'#0f172a';
-    ctx.fillText('₹'+Number(val).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=16;
+    ctx.fillText('₹'+Number(val).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=17;
   }
   row('Taxable value',taxable);
   if(disc)row('Discount',-disc,false,'#dc2626');
@@ -1157,19 +1172,12 @@ async function renderInvoicePng(tx){
     const shopState=String(b.state||'').slice(0,2);
     const buyerState=String(tx.buyerState||tx.state||shopState).slice(0,2);
     const inter=shopState&&buyerState&&shopState!==buyerState;
-    if(inter){
-      row('IGST @ integrated',gst,true);
-    } else {
-      row('CGST',cgst);
-      row('SGST',sgst);
-      row('Total tax',gst,true);
-    }
+    if(inter) row('IGST',gst,true);
+    else { row('CGST',cgst); row('SGST',sgst); row('Total tax',gst,true); }
     ctx.font='9px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='left';
-    ctx.fillText(inter?('Inter-state · Place of supply: '+buyerState):('Intra-state · State '+shopState),pad,y);y+=12;
-  } else if(gst){
-    row('GST',gst);
-  }
-  ctx.font='bold 14px system-ui';ctx.textAlign='left';ctx.fillStyle='#0f172a';
+    ctx.fillText(inter?('Inter-state · POS: '+buyerState):('Intra-state · State '+(shopState||'—')),pad,y);y+=14;
+  } else if(gst){ row('GST',gst); }
+  ctx.font='bold 15px system-ui';ctx.textAlign='left';ctx.fillStyle='#0f172a';
   ctx.fillText('Grand Total',pad,y);ctx.textAlign='right';
   ctx.fillText('₹'+Number(tot).toLocaleString('en-IN',{maximumFractionDigits:2}),W-pad,y);y+=22;
   if(tx.received!=null&&tx.balanceDue>0){
@@ -1177,13 +1185,9 @@ async function renderInvoicePng(tx){
     ctx.fillText('Received',pad,y);ctx.textAlign='right';ctx.fillStyle='#0f172a';ctx.fillText('₹'+Number(tx.received).toLocaleString('en-IN'),W-pad,y);y+=14;
     ctx.textAlign='left';ctx.fillStyle='#b45309';ctx.fillText('Balance due',pad,y);ctx.textAlign='right';ctx.fillText('₹'+Number(tx.balanceDue).toLocaleString('en-IN'),W-pad,y);y+=16;
   }
-  if(gstOn){
-    ctx.font='9px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
-    ctx.fillText('Supply: '+(b.state?('State '+b.state):'Intra-state')+' · This is a computer generated invoice',W/2,y);y+=12;
-  }
   ctx.font='11px system-ui';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
   ctx.fillText(b.footer||'Thank you!',W/2,y);
-  return c.toDataURL('image/png');
+  return c.toDataURL('image/png',1.0);
 }
 async function sharePngDataUrl(dataUrl,filename){
   try{
@@ -1718,6 +1722,24 @@ function refreshCoTotals(){
 
 
 if($('#coReceived')){$('#coReceived').oninput=()=>{$('#coReceived').dataset.touched='1';refreshCoTotals()}}
+
+async function applyPriceListToCart(){
+  if(!selectedCustomer||!cart.length)return;
+  try{
+    const lists=await all('pricelists');
+    if(!lists.length)return;
+    let changed=false;
+    cart.forEach(line=>{
+      const match=lists.find(pl=>+pl.productId===+line.id&&(+pl.partyId===+selectedCustomer.id||!pl.partyId));
+      // prefer customer-specific
+      const specific=lists.find(pl=>+pl.productId===+line.id&&+pl.partyId===+selectedCustomer.id);
+      const pl=specific||lists.find(pl=>+pl.productId===+line.id&&!pl.partyId);
+      if(pl&&+pl.price>=0&&+line.price!==+pl.price){line.price=+pl.price;changed=true}
+    });
+    if(changed){renderCartBar();if(typeof refreshCoTotals==='function')refreshCoTotals();toast('Price list applied')}
+  }catch(e){}
+}
+
 function openCustSelect(){
   selectedCustomer=null;coDiscount=0;coCouponCode='';
   $('#coCustSelected').textContent='No customer selected (Cash)';
@@ -1740,6 +1762,7 @@ async function fillCustDrop(q){
     $('#coCustSearch').value=selectedCustomer.name||'';
     $('#coCustSelected').textContent=(selectedCustomer.name||'')+(selectedCustomer.phone?' · '+selectedCustomer.phone:'');
     box.style.display='none';
+    await applyPriceListToCart();
   });
 }
 $('#coCustSearch').oninput=e=>fillCustDrop(e.target.value);
@@ -1797,7 +1820,7 @@ $('#coCustNext').onclick=async()=>{
   const total=Math.max(0, raw);
   const roundAdj=Math.round((total-raw)*100)/100;
   const title=selectedCustomer?(selectedCustomer.name||'Customer'):'Cash Sale';
-  const billNo=(typeof AtomPOS!=='undefined'&&AtomPOS.nextBillNo)?await AtomPOS.nextBillNo():('atom'+Date.now().toString().slice(-6));
+  const billNo=(typeof AtomPOS!=='undefined'&&AtomPOS.nextBillNo)?await AtomPOS.nextBillNo():('AB'+Date.now().toString().slice(-4));
   const id='TX'+Date.now();
   let received=total;
   const recvRaw=$('#coReceived')&&$('#coReceived').value;
@@ -2058,7 +2081,6 @@ function buildDrawer(){
        <button type="button" id="navBiz">Business & GST</button>
        <button type="button" id="navDatabase">Database</button>
        <button type="button" id="navLogs">Logs</button>
-       <button type="button" id="navShifts">Shifts</button>
        <button type="button" id="navSessions">Sessions</button>
      </div>`;
   $('#navOverview').onclick=()=>showPropView('#pr-viewMain','Overview','Store snapshot');
@@ -2070,8 +2092,7 @@ function buildDrawer(){
   $('#navBiz')&&($('#navBiz').onclick=()=>{showPropView('#pr-viewBizSettings','Business & GST','Invoice identity');loadBizSettings()});
 $('#navDatabase').onclick=()=>showPropView('#pr-viewDatabase','Database','Export · import · clean');
   $('#navLogs').onclick=()=>showPropView('#pr-viewLogs','Logs','Payments · inventory · sessions');
-  $('#navShifts').onclick=()=>showPropView('#pr-viewShifts','Shifts','Shift history');
-  $('#navSessions').onclick=()=>showPropView('#pr-viewSessions','Sessions','Device sessions');
+    $('#navSessions').onclick=()=>showPropView('#pr-viewSessions','Sessions','Device sessions');
   
 }
 buildDrawer();
@@ -2083,19 +2104,42 @@ function clearForm(){
   photoData=null;$('#pr-pPrev').innerHTML='';
   ['pName','pPrice','pCost','pStock','pMinStock','pTax','pCat','pBarcode','pSku','pHsn','pExpiry'].forEach(id=>{const e=$('#'+id);if(e)e.value=''});
   if($('#pr-pUnit'))$('#pr-pUnit').value='pcs';if($('#pr-pTaxInc'))$('#pr-pTaxInc').checked=false;
+  if($('#pr-pIsPurchase'))$('#pr-pIsPurchase').checked=false;if($('#pr-pPurExtra'))$('#pr-pPurExtra').style.display='none';
   $('#pr-btnSaveProd').textContent='Save product';
 }
 $('#pr-pPhoto').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{photoData=await compressImageDataUrl(r.result,800,0.72);$('#pr-pPrev').innerHTML='<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover">'};r.readAsDataURL(f)};
 $('#pr-pLivePhoto').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.capture='environment';i.onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{photoData=await compressImageDataUrl(r.result,800,0.72);$('#pr-pPrev').innerHTML='<img src="'+photoData+'" style="width:100%;height:100%;object-fit:cover">'};r.readAsDataURL(f)};i.click()};
 $('#pr-pExpiry').addEventListener('input',()=>{let v=$('#pr-pExpiry').value.replace(/\D/g,'').slice(0,8);if(v.length>=5)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);else if(v.length>=3)v=v.slice(0,2)+'/'+v.slice(2);$('#pr-pExpiry').value=v});
 
+if($('#pr-pIsPurchase'))$('#pr-pIsPurchase').onchange=()=>{const on=$('#pr-pIsPurchase').checked;if($('#pr-pPurExtra'))$('#pr-pPurExtra').style.display=on?'block':'none'};
 $('#pr-btnSaveProd').onclick=async()=>{
-  const name=($('#pr-pName').value||'').trim();const price=+$('#pr-pPrice').value;
-  if(!name||isNaN(price)||price<0){toast('Name & price required');return}
-  let barcode=($('#pr-pBarcode').value||'').trim();if(!barcode)barcode='AB'+Date.now().toString().slice(-10);
-  const data={name,price,cost:+$('#pr-pCost').value||0,stock:+$('#pr-pStock').value||0,minStock:+$('#pr-pMinStock').value||0,tax:+$('#pr-pTax').value||0,unit:$('#pr-pUnit').value||'pcs',cat:($('#pr-pCat').value||'General').trim()||'General',sku:($('#pr-pSku').value||'').trim(),barcode,hsn:($('#pr-pHsn').value||'').trim(),expiry:($('#pr-pExpiry').value||'').trim(),taxInc:!!$('#pr-pTaxInc').checked,photo:photoData||null};
-  if(editId){data.id=editId;await put('products',data);toast('Updated')}else{await put('products',data);toast('Saved')}
-  editId=null;clearForm();showPropView('#pr-viewProdHub','Products','Manage catalog');
+  try{
+    const name=($('#pr-pName').value||'').trim();const price=+$('#pr-pPrice').value;
+    if(!name||isNaN(price)||price<0){toast('Name & price required');return}
+    let barcode=($('#pr-pBarcode').value||'').trim();if(!barcode)barcode='AB'+Date.now().toString().slice(-10);
+    const isPur=!!($('#pr-pIsPurchase')&&$('#pr-pIsPurchase').checked);
+    let stock=+$('#pr-pStock').value||0;
+    const cost=+$('#pr-pCost').value||0;
+    const purQty=Math.max(1,+$('#pr-pPurQty')?.value||stock||1);
+    if(isPur&&!editId) stock=Math.max(stock,purQty);
+    const data={name,price,cost,stock,minStock:+$('#pr-pMinStock').value||0,tax:+$('#pr-pTax').value||0,unit:$('#pr-pUnit').value||'pcs',cat:($('#pr-pCat').value||'General').trim()||'General',sku:($('#pr-pSku').value||'').trim(),barcode,hsn:($('#pr-pHsn').value||'').trim(),expiry:($('#pr-pExpiry').value||'').trim(),taxInc:!!$('#pr-pTaxInc').checked,photo:photoData||null};
+    let prodId=editId;
+    if(editId){data.id=editId;await put('products',data);toast('Updated')}
+    else{prodId=await put('products',data);toast('Saved')}
+    if(isPur&&prodId!=null){
+      const qty=purQty;
+      const total=qty*(cost||price||0);
+      const pur={supplier:($('#pr-pSupplier')?.value||'').trim()||'Opening / Purchase',date:new Date().toISOString(),total,status:'ok',note:'From add product'};
+      const purId=await put('purchases',pur);
+      await put('purchaseItems',{purchaseId:purId,productId:prodId,name,qty,cost:cost||price||0,lineTotal:total});
+      await put('inventoryLogs',{productId:prodId,name,delta:qty,reason:'Purchase',at:new Date().toISOString()});
+      toast('Purchase recorded · stock +'+qty);
+    }
+    editId=null;clearForm();
+    if($('#pr-pIsPurchase'))$('#pr-pIsPurchase').checked=false;
+    if($('#pr-pPurExtra'))$('#pr-pPurExtra').style.display='none';
+    showPropView('#pr-viewProdHub','Products','Manage catalog');
+  }catch(e){console.error(e);toast('Save failed')}
 };
 
 /* barcode scan */
@@ -2127,7 +2171,14 @@ $('#pr-btnCoupons').onclick=()=>showPropView('#pr-viewCoupons','Coupons','Discou
 $('#pr-btnPriceList').onclick=()=>{showPropView('#pr-viewPriceList','Price lists','Per customer prices');renderPL()};
 async function renderPL(){
   const list=await all('pricelists');
-  $('#pr-plList').innerHTML=list.length?list.map(p=>`<div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:var(--sh)"><b>${p.name||'List'}</b><div style="font-size:12px;color:#64748b">Product #${p.productId}${p.partyId?' · Party #'+p.partyId:''} · ${fmt(p.price)}</div></div>`).join(''):'<div class="empty" style="font-size:22px;font-weight:800">None</div>';
+  const prods=await all('products');const parties=await all('parties');
+  const pn=id=>{const p=prods.find(x=>+x.id===+id);return p?p.name:'#'+id};
+  const cn=id=>{if(!id)return 'All customers';const p=parties.find(x=>+x.id===+id);return p?p.name:'#'+id};
+  $('#pr-plList').innerHTML=list.length?list.map(p=>`<div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:var(--sh);display:flex;justify-content:space-between;align-items:center;gap:8px">
+    <div><b>${p.name||'List'}</b><div style="font-size:12px;color:#64748b">${pn(p.productId)} · ${cn(p.partyId)} · <b>${fmt(p.price)}</b></div></div>
+    <button type="button" data-pldel="${p.id}" style="padding:8px 10px;border:0;border-radius:8px;background:#fee2e2;color:#dc2626;font-weight:700;font-size:11px;font-family:inherit">Del</button>
+  </div>`).join(''):'<div class="empty" style="font-size:18px;font-weight:800;padding:16px">No price lists yet</div>';
+  $$('#pr-plList [data-pldel]').forEach(b=>b.onclick=async()=>{if(!(await appConfirm('Delete','Remove price entry?','Delete',true)))return;await del('pricelists',+b.dataset.pldel);renderPL()});
 }
 async function atomDrop(inp,drop,loader,pick){
   inp.oninput=async()=>{const q=(inp.value||'').trim().toLowerCase();if(!q){drop.style.display='none';return}const rows=await loader(q);if(!rows.length){drop.innerHTML='<div class="item"><div class="n">No match</div></div>';drop.style.display='block';return}
@@ -2545,7 +2596,8 @@ async function renderReports(){
 }
 async function renderInvoices(){
   const txs=(await all('transactions')).filter(t=>t.status!=='void').slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,100);
-  $('#pr-invBody').innerHTML=txs.length?'<table><thead><tr><th>DATE</th><th>PARTY</th><th>AMT</th><th></th></tr></thead><tbody>'+txs.map(t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.title||'Sale'}</td><td>${fmt(t.amount)}</td><td><button type="button" data-tx="${t.id}" style="padding:6px 10px;border:0;border-radius:8px;background:#eef2ff;color:#4f46e5;font-weight:700;font-size:11px;font-family:inherit">View</button></td></tr>`).join('')+'</tbody></table>':'<div class="empty" style="padding:16px">None</div>';
+  const brand=typeof getBrand==='function'?getBrand():{};
+  $('#pr-invBody').innerHTML=txs.length?'<table><thead><tr><th>DATE</th><th>PARTY</th><th>AMT</th><th></th></tr></thead><tbody>'+txs.map(t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.billNo||t.id}<div style="font-size:10px;color:#64748b">${t.title||'Sale'}</div></td><td>${fmt(t.amount)}${(t.gst?`<div style="font-size:10px;color:#4f46e5">GST ${fmt(t.gst)}</div>`:'')}</td><td><button type="button" data-tx="${t.id}" style="padding:6px 10px;border:0;border-radius:8px;background:#eef2ff;color:#4f46e5;font-weight:700;font-size:11px;font-family:inherit">GST Bill</button></td></tr>`).join('')+'</tbody></table>':'<div class="empty" style="padding:16px">None</div>';
   $$('#pr-invBody [data-tx]').forEach(b=>b.onclick=async()=>{
     const tx=await getById('transactions',b.dataset.tx);if(!tx)return;
     const url=await renderInvoicePng(tx);
@@ -2759,20 +2811,21 @@ if($('#btnCopyCsvFmt'))$('#btnCopyCsvFmt').onclick=async()=>{try{await navigator
 
 
 async function downloadSheet(rows,name){
-  if(typeof XLSX==='undefined'){toast('Excel library loading…');return}
-  const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
-  const ab=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  const blob=new Blob([ab],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const file=new File([blob],name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  if(typeof XLSX==='undefined'){toast('Excel library not loaded');return}
   try{
-    if(navigator.canShare&&navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:name,text:name});return;
+    const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Sheet1');
+    const ab=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=new Blob([ab],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const file=new File([blob],name||'export.xlsx',{type:blob.type});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:name,text:name});toast('Shared');return;
     }
-  }catch(e){if(e&&e.name==='AbortError')return}
-  try{
-    if(navigator.share){await navigator.share({title:name,text:name+' ready'});}
-  }catch(e){}
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2e3);
+    if(navigator.share){
+      try{await navigator.share({title:name,text:name+' — use download fallback'});}catch(e){}
+    }
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name||'export.xlsx';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);toast('Downloaded');
+  }catch(e){console.error(e);toast('Export failed')}
 }
 $('#pr-btnExportProdXlsx').onclick=async()=>{const list=await all('products');await downloadSheet(list.map(p=>({name:p.name,price:p.price,cost:p.cost,stock:p.stock,minStock:p.minStock,tax:p.tax,unit:p.unit,cat:p.cat,sku:p.sku,barcode:p.barcode,hsn:p.hsn,expiry:p.expiry})),'atom-products.xlsx');toast('Exported products')};
 $('#pr-btnExportClientXlsx').onclick=async()=>{const list=(await all('parties')).filter(p=>(p.type||'customer')!=='supplier');await downloadSheet(list.map(p=>({name:p.name,phone:p.phone,email:p.email,address:p.address,balance:p.balance})),'atom-clients.xlsx');toast('Exported clients')};
@@ -2804,79 +2857,96 @@ async function showBook(b){
   $('#ac-pageTitle').textContent=titles[b]||b;
   const box=$('#ac-bookBody');
   const txs=(await all('transactions')).filter(t=>t.status!=='void');
-  const purchases=await all('purchases').catch(()=>[]);
+  const purchases=await all('purchases');
+  const fmtR=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
 
   if(b==='pl'){
-    let sales=0,salesRet=0,purch=0,purchRet=0;
-    txs.forEach(t=>{const a=+t.amount||0;if(t.type==='sale_return'||t.kind==='sales_return')salesRet+=Math.abs(a);else if(t.type==='purchase_return')purchRet+=Math.abs(a);else if(t.status!=='unpaid'&&a>0)sales+=a});
-    purchases.forEach(p=>{const a=+(p.total||0);if((p.status||'')!=='cancelled')purch+=a});
-    const gp=sales-salesRet-(purch-purchRet);
-    box.innerHTML=`<div class="book" style="padding:16px">
-      <div class="pl-row"><span>Sales</span><span class="pos">${fmt(sales)}</span></div>
-      <div class="pl-row"><span>Less: Sales returns</span><span class="neg">− ${fmt(salesRet)}</span></div>
-      <div class="pl-row"><span>Net sales</span><b>${fmt(sales-salesRet)}</b></div>
-      <div class="pl-row"><span>Purchases</span><span>${fmt(purch)}</span></div>
-      <div class="pl-row"><span>Less: Purchase returns</span><span class="pos">− ${fmt(purchRet)}</span></div>
-      <div class="pl-row"><span>Net purchases</span><b>${fmt(purch-purchRet)}</b></div>
-      <div class="pl-row big"><span>Gross profit / (loss)</span><span class="${gp>=0?'pos':'neg'}">${fmt(gp)}</span></div>
-    </div>`;
+    let sales=0,cogs=0,exp=0;
+    txs.forEach(t=>{if((+t.amount||0)>0)sales+=+t.amount});
+    purchases.forEach(p=>cogs+=(+p.total||0));
+    const fin=await all('finance');
+    fin.forEach(f=>{if(f.type==='expense')exp+=(+f.amount||0)});
+    const gross=sales-cogs,net=gross-exp;
+    box.innerHTML=`<div class="book"><div class="detail-row"><span>Sales</span><b>${fmtR(sales)}</b></div>
+      <div class="detail-row"><span>Purchases / COGS</span><b>${fmtR(cogs)}</b></div>
+      <div class="detail-row"><span>Gross profit</span><b>${fmtR(gross)}</b></div>
+      <div class="detail-row"><span>Expenses</span><b>${fmtR(exp)}</b></div>
+      <div class="detail-row"><span>Net</span><b>${fmtR(net)}</b></div></div>`;
     return;
   }
   if(b==='sales'){
-    const list=txs.filter(t=>t.status!=='return'&&t.type!=='sale_return'&&(+t.amount||0)>0).sort((a,c)=>(c.date||'').localeCompare(a.date||''));
-    box.innerHTML=rows(list,{head:'<th>Date</th><th>Particulars</th><th>Amount</th>',row:t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.title||'Sale'}</td><td>${fmt(t.amount)}</td></tr>`,foot:L=>`<tr class="tot"><td colspan="2">Total</td><td>${fmt(L.reduce((s,x)=>s+(+x.amount||0),0))}</td></tr>`});
+    const list=txs.filter(t=>(+t.amount||0)>0).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    box.innerHTML=list.length?`<div class="book"><table><thead><tr><th>Date</th><th>Bill</th><th>Party</th><th>Amt</th><th>GST</th></tr></thead><tbody>${list.map(t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.billNo||t.id}</td><td>${t.title||''}</td><td>${fmtR(t.amount)}</td><td>${fmtR(t.gst)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No sales</div>';
     return;
   }
   if(b==='purchase'){
-    const list=(purchases||[]).slice().sort((a,c)=>(c.date||'').localeCompare(a.date||''));
-    box.innerHTML=rows(list,{head:'<th>Date</th><th>Supplier</th><th>Amount</th>',row:t=>`<tr><td>${(t.date||t.at||'').toString().slice(0,10)}</td><td>${t.supplier||t.name||'Purchase'}</td><td>${fmt(t.total||t.amount||0)}</td></tr>`,foot:L=>`<tr class="tot"><td colspan="2">Total</td><td>${fmt(L.reduce((s,x)=>s+(+(x.total||x.amount)||0),0))}</td></tr>`});
+    const list=purchases.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    box.innerHTML=list.length?`<div class="book"><table><thead><tr><th>Date</th><th>Supplier</th><th>Total</th><th>Note</th></tr></thead><tbody>${list.map(p=>`<tr><td>${(p.date||'').slice(0,10)}</td><td>${p.supplier||''}</td><td>${fmtR(p.total)}</td><td>${p.note||''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No purchases</div>';
     return;
   }
-  if(b==='sret'){
-    const list=txs.filter(t=>t.type==='sale_return'||t.kind==='sales_return');
-    box.innerHTML=rows(list,{head:'<th>Date</th><th>Particulars</th><th>Amount</th>',row:t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.title||'Sales return'}</td><td class="neg">${fmt(Math.abs(t.amount||0))}</td></tr>`,foot:L=>`<tr class="tot"><td colspan="2">Total</td><td>${fmt(L.reduce((s,x)=>s+Math.abs(+x.amount||0),0))}</td></tr>`});
-    return;
-  }
-  if(b==='pret'){
-    const list=txs.filter(t=>t.type==='purchase_return');
-    box.innerHTML=rows(list,{head:'<th>Date</th><th>Particulars</th><th>Amount</th>',row:t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.title||'Purchase return'}</td><td>${fmt(Math.abs(t.amount||0))}</td></tr>`,foot:L=>`<tr class="tot"><td colspan="2">Total</td><td>${fmt(L.reduce((s,x)=>s+Math.abs(+x.amount||0),0))}</td></tr>`});
+  if(b==='sret'||b==='pret'){
+    const list=txs.filter(t=>t.type==='sale_return'||t.type==='purchase_return'||t.kind==='sales_return');
+    box.innerHTML=list.length?`<div class="book"><table><thead><tr><th>Date</th><th>Type</th><th>Amt</th></tr></thead><tbody>${list.map(t=>`<tr><td>${(t.date||'').slice(0,10)}</td><td>${t.type||t.kind}</td><td>${fmtR(Math.abs(t.amount||0))}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">None</div>';
     return;
   }
   if(b==='tax'){
-    let taxable=0,tax=0;
-    txs.forEach(t=>{if(t.status==='unpaid')return;const a=+t.amount||0;if(a<=0)return;const r=+(t.taxRate||0);if(r){taxable+=a/(1+r/100);tax+=a-a/(1+r/100)}else{taxable+=a}});
-    box.innerHTML=`<div class="book" style="padding:16px">
-      <div class="pl-row"><span>Taxable value</span><b>${fmt(taxable)}</b></div>
-      <div class="pl-row"><span>Tax amount</span><b>${fmt(tax)}</b></div>
-      <div class="pl-row big"><span>Gross incl. tax</span><b>${fmt(taxable+tax)}</b></div>
-    </div>`;
+    let gst=0;txs.forEach(t=>gst+=(+t.gst||0));
+    box.innerHTML=`<div class="book"><div class="detail-row"><span>GST collected</span><b>${fmtR(gst)}</b></div>
+      <div class="detail-row"><span>CGST</span><b>${fmtR(gst/2)}</b></div>
+      <div class="detail-row"><span>SGST</span><b>${fmtR(gst/2)}</b></div></div>`;
     return;
   }
   if(b==='day'){
-    const dayStart=new Date();dayStart.setHours(0,0,0,0);
-    const list=txs.filter(t=>t.date&&new Date(t.date)>=dayStart).sort((a,c)=>(c.date||'').localeCompare(a.date||''));
-    box.innerHTML=rows(list,{head:'<th>Time</th><th>Particulars</th><th>Amount</th>',row:t=>`<tr><td>${(t.date||'').slice(11,19)||'—'}</td><td>${t.title||''}</td><td>${fmt(t.amount)}</td></tr>`,foot:L=>`<tr class="tot"><td colspan="2">Total</td><td>${fmt(L.reduce((s,x)=>s+(+x.amount||0),0))}</td></tr>`});
+    const day=(new Date()).toISOString().slice(0,10);
+    const list=txs.filter(t=>(t.date||'').slice(0,10)===day);
+    box.innerHTML=list.length?`<div class="book"><table><thead><tr><th>Bill</th><th>Party</th><th>Amt</th></tr></thead><tbody>${list.map(t=>`<tr><td>${t.billNo||t.id}</td><td>${t.title||''}</td><td>${fmtR(t.amount)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No entries today</div>';
     return;
   }
   if(b==='gstr1'){
     const brand=typeof getBrand==='function'?getBrand():{};
-    const b2cs=[];
-    txs.filter(t=>t.status!=='unpaid'&&(+t.amount||0)>0&&t.type!=='sale_return').forEach(t=>{
-      b2cs.push({rt:0,sply_ty:'INTRA',typ:'OE',pos:(brand.state||'27').toString().slice(0,2),txval:+((+t.amount||0)*0.85).toFixed(2),camt:+((+t.amount||0)*0.075).toFixed(2),samt:+((+t.amount||0)*0.075).toFixed(2),iamt:0,csamt:0});
+    const list=txs.filter(t=>(+t.amount||0)>0);
+    const b2cs={},hsn={};
+    list.forEach(t=>{
+      const gst=+t.gst||0, tot=+t.amount||0, taxval=Math.max(0,(+t.subtotal||tot-gst));
+      const pos=String(t.buyerState||brand.state||'27').slice(0,2);
+      const rt=taxval?(Math.round(gst/taxval*10000)/100):0;
+      const key=pos+'_'+rt;
+      if(!b2cs[key])b2cs[key]={sply_ty:'INTRA',rt,typ:'OE',pos,txval:0,camt:0,samt:0,iamt:0,csamt:0};
+      b2cs[key].txval+=taxval;b2cs[key].camt+=gst/2;b2cs[key].samt+=gst/2;
+      (t.items||[]).forEach(it=>{
+        const code=(it.hsn||'00').toString();
+        if(!hsn[code])hsn[code]={hsn_sc:code,desc:(it.name||'').slice(0,30),uqc:'NOS',qty:0,val:0,txval:0,camt:0,samt:0,iamt:0,csamt:0,rt};
+        const line=(+it.qty||0)*(+it.price||0);
+        hsn[code].qty+=(+it.qty||0);hsn[code].val+=line;hsn[code].txval+=line;
+      });
     });
-    const gstr={gstin:brand.gstin||'',fp:new Date().toISOString().slice(0,7).replace('-',''),gt:0,cur_gt:0,b2cs,doc_issue:{doc_det:[{doc_num:1,doc_typ:'Invoices for outward supply',docs:[{num:txs.length,from:'1',to:String(Math.max(1,txs.length)),totnum:txs.length,cancel:0,net_issue:txs.length}]}]}};
-    const json=JSON.stringify(gstr,null,2);
-    box.innerHTML=`<p style="font-size:12px;color:#64748b;margin-bottom:8px">Copy this JSON for your CA (simplified GSTR-1 style).</p>
-      <pre class="term" id="gstr1json">${json.replace(/</g,'&lt;')}</pre>
-      <button type="button" id="btnCopyGstr" style="margin-top:10px;width:100%;padding:12px;border:0;border-radius:12px;background:#4f46e5;color:#fff;font-weight:700;font-family:inherit">Copy GSTR-1 JSON</button>`;
+    const fp=new Date().toISOString().slice(0,7).replace('-','');
+    const sorted=list.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const doc={gstin:brand.gstin||'',fp,gt:0,cur_gt:0,
+      b2cs:Object.values(b2cs).map(x=>({...x,txval:Math.round(x.txval*100)/100,camt:Math.round(x.camt*100)/100,samt:Math.round(x.samt*100)/100})),
+      hsn:{data:Object.values(hsn).map((x,i)=>({num:i+1,...x,val:Math.round(x.val*100)/100,txval:Math.round(x.txval*100)/100}))},
+      doc_issue:{doc_det:[{doc_num:1,doc_typ:'Invoices for outward supply',docs:[{num:1,from:sorted[0]?sorted[0].billNo:'',to:sorted.length?sorted[sorted.length-1].billNo:'',totnum:list.length,cancel:0,net_issue:list.length}]}]}
+    };
+    const json=JSON.stringify(doc,null,2);
+    box.innerHTML=`<p style="font-size:12px;color:#64748b;margin-bottom:8px"><b>GSTR-1 JSON</b> (B2CS + HSN + document summary). Review before portal upload. GSTIN: <b>${brand.gstin||'Set in Business & GST'}</b></p>
+      <pre class="term" id="gstr1json" style="max-height:45vh;overflow:auto;font-size:11px">${json.replace(/</g,'&lt;')}</pre>
+      <button type="button" id="btnCopyGstr" style="margin-top:10px;width:100%;padding:12px;border:0;border-radius:12px;background:#4f46e5;color:#fff;font-weight:700;font-family:inherit">Copy GSTR-1 JSON</button>
+      <button type="button" id="btnShareGstr" style="margin-top:8px;width:100%;padding:12px;border:0;border-radius:12px;background:#0f172a;color:#fff;font-weight:700;font-family:inherit">Share JSON file</button>`;
     $('#btnCopyGstr').onclick=async()=>{try{await navigator.clipboard.writeText(json);toast('Copied')}catch(e){toast('Copy failed')}};
+    $('#btnShareGstr').onclick=async()=>{
+      const file=new File([json],'GSTR1_'+fp+'.json',{type:'application/json'});
+      try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'GSTR-1'});return}}catch(e){}
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download='GSTR1_'+fp+'.json';a.click();
+    };
+    return;
   }
+  box.innerHTML='<div class="empty">Select a book</div>';
 }
+
 $$('#ac-tabs button').forEach(b=>b.onclick=()=>showBook(b.dataset.b));
 (async()=>{try{if(typeof openDB==='function')await openDB();if(typeof logSession==='function')logSession('accountant');if(typeof showBook==='function')showBook('pl')}catch(e){console.error('ac init',e)}})();
 initShell(document.getElementById('root-accountant'));
-
-};
+}; // end __panelInit.accountant
 </script>
 <script>
 window.__panelInit.calculator=function(){
