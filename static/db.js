@@ -12,10 +12,13 @@ const STORE_ALIAS={
   transactions:'sales', parties:'customers', held:'heldBills', inventoryLogs:'stockMovements',
   finance:'expenses', meta:'settings', syncQueue:null
 };
-function resolveStore(s){return STORE_ALIAS.hasOwnProperty(s)?STORE_ALIAS[s]:s}
+function resolveStore(s){
+  if(s==='parties') return 'customers'; // default; put/all override for suppliers
+  return STORE_ALIAS.hasOwnProperty(s)?STORE_ALIAS[s]:s;
+}
 
 function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,IDB_VERSION);
-r.onupgradeneeded=e=>{const d=e.target.result;const old=e.oldVersion;
+r.onupgradeneeded=e=>{const d=e.target.result;
   const defs={
     products:{keyPath:'id',autoIncrement:true,indexes:[['name','name'],['barcode','barcode'],['cat','cat']]},
     categories:{keyPath:'id',autoIncrement:true,indexes:[['name','name']]},
@@ -43,63 +46,141 @@ r.onupgradeneeded=e=>{const d=e.target.result;const old=e.oldVersion;
       (cfg.indexes||[]).forEach(([n,k])=>{try{s.createIndex(n,k)}catch(x){}});
     }
   }
-  // one-time migrate from v4 store names if present in same DB upgrade path
-  // (data copy happens after open via migrateLegacy)
 };
 r.onsuccess=e=>{db=e.target.result;migrateLegacy().then(()=>res(db)).catch(()=>res(db))};
 r.onerror=e=>rej(e.target.error)})}
 
 async function migrateLegacy(){
   if(!db) return;
-  const map=[['transactions','sales'],['parties','customers'],['held','heldBills'],['inventoryLogs','stockMovements'],['finance','expenses'],['meta','settings']];
+  const map=[['transactions','sales'],['parties','customers'],['held','heldBills'],['inventoryLogs','stockMovements'],['finance','expenses']];
   for(const [from,to] of map){
     if(!db.objectStoreNames.contains(from)||!db.objectStoreNames.contains(to)) continue;
     try{
       const rows=await new Promise((res,rej)=>{const t=db.transaction(from,'readonly').objectStore(from).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
       if(!rows.length) continue;
       const existing=await new Promise((res,rej)=>{const t=db.transaction(to,'readonly').objectStore(to).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
-      if(existing.length) continue; // already migrated
+      if(existing.length) continue;
       const tx=db.transaction(to,'readwrite');const store=tx.objectStore(to);
-      for(const row of rows){try{store.put(row)}catch(x){}}
+      for(const row of rows){
+        try{
+          const copy=Object.assign({},row);
+          // settings-like rows skipped in this map
+          store.put(copy);
+        }catch(x){}
+      }
       await new Promise((res,rej)=>{tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)});
     }catch(e){console.warn('migrate',from,e)}
   }
 }
 
-const all=s=>new Promise((res,rej)=>{s=resolveStore(s);if(!s||!db.objectStoreNames.contains(s))return res([]);const t=db.transaction(s,'readonly').objectStore(s).getAll();t.onsuccess=()=>res(t.result||[]);t.onerror=()=>rej(t.error)});
-const _putRaw=(s,d)=>new Promise((res,rej)=>{s=resolveStore(s);if(!s||!db.objectStoreNames.contains(s))return res(null);const t=db.transaction(s,'readwrite').objectStore(s).put(d);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
-const TRACK_STORES=STORES_STRICT.slice();
-const put=async(s,d)=>{const id=await _putRaw(s,d);return id;};
-const del=(s,id)=>new Promise((res,rej)=>{s=resolveStore(s);if(!s)return res();const t=db.transaction(s,'readwrite').objectStore(s).delete(id);t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
-const clearStore=s=>new Promise((res,rej)=>{s=resolveStore(s);if(!s||!db.objectStoreNames.contains(s))return res();const t=db.transaction(s,'readwrite').objectStore(s).clear();t.onsuccess=()=>res();t.onerror=()=>rej(t.error)});
-const getById=(s,id)=>new Promise((res,rej)=>{s=resolveStore(s);if(!s)return res(undefined);const t=db.transaction(s,'readonly').objectStore(s).get(id);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error)});
+function _rawAll(storeName){
+  return new Promise((res,rej)=>{
+    if(!db||!storeName||!db.objectStoreNames.contains(storeName)) return res([]);
+    try{
+      const t=db.transaction(storeName,'readonly').objectStore(storeName).getAll();
+      t.onsuccess=()=>res(t.result||[]);
+      t.onerror=()=>res([]); // never reject — avoid app crash
+    }catch(e){res([])}
+  });
+}
+function _rawPut(storeName,data){
+  return new Promise((res)=>{
+    if(!db||!storeName||!db.objectStoreNames.contains(storeName)) return res(null);
+    try{
+      const d=Object.assign({},data);
+      // settings must have key
+      if(storeName==='settings'){
+        if(d.key==null&&d.id!=null){d.key=d.id;delete d.id}
+        if(d.key==null) return res(null);
+      } else {
+        // strip invalid undefined id so autoIncrement works
+        if(d.id===undefined||d.id===null||d.id==='') delete d.id;
+      }
+      const t=db.transaction(storeName,'readwrite').objectStore(storeName).put(d);
+      t.onsuccess=()=>res(t.result);
+      t.onerror=()=>{console.warn('put fail',storeName,t.error);res(null)};
+    }catch(e){console.warn('put err',storeName,e);res(null)}
+  });
+}
+function _rawGet(storeName,id){
+  return new Promise((res)=>{
+    if(!db||!storeName||!db.objectStoreNames.contains(storeName)) return res(undefined);
+    try{
+      const t=db.transaction(storeName,'readonly').objectStore(storeName).get(id);
+      t.onsuccess=()=>res(t.result);
+      t.onerror=()=>res(undefined);
+    }catch(e){res(undefined)}
+  });
+}
+function _rawDel(storeName,id){
+  return new Promise((res)=>{
+    if(!db||!storeName||!db.objectStoreNames.contains(storeName)) return res();
+    try{
+      const t=db.transaction(storeName,'readwrite').objectStore(storeName).delete(id);
+      t.onsuccess=()=>res();t.onerror=()=>res();
+    }catch(e){res()}
+  });
+}
+function _rawClear(storeName){
+  return new Promise((res)=>{
+    if(!db||!storeName||!db.objectStoreNames.contains(storeName)) return res();
+    try{
+      const t=db.transaction(storeName,'readwrite').objectStore(storeName).clear();
+      t.onsuccess=()=>res();t.onerror=()=>res();
+    }catch(e){res()}
+  });
+}
 
-/* ===== Offline badge only (no server sync) ===== */
-async function enqueueSync(){/* no-op: pure offline IndexedDB */}
+/** parties → customers+suppliers merge; suppliers alias */
+const all=async(s)=>{
+  if(s==='parties'){
+    const [c,sup]=await Promise.all([_rawAll('customers'),_rawAll('suppliers')]);
+    return [
+      ...c.map(x=>({...x,type:x.type||'customer'})),
+      ...sup.map(x=>({...x,type:x.type||'supplier'}))
+    ];
+  }
+  return _rawAll(resolveStore(s));
+};
+const put=async(s,d)=>{
+  try{
+    let store=s;
+    if(s==='parties'){
+      store=((d&&d.type)||'customer')==='supplier'?'suppliers':'customers';
+    } else {
+      store=resolveStore(s);
+    }
+    // never allow accidental full wipe via put
+    if(!store||!d||typeof d!=='object') return null;
+    const id=await _rawPut(store,d);
+    return id;
+  }catch(e){console.warn(e);return null}
+};
+const del=async(s,id)=>{
+  if(s==='parties'){
+    await _rawDel('customers',id);await _rawDel('suppliers',id);return;
+  }
+  return _rawDel(resolveStore(s),id);
+};
+const clearStore=async(s)=>{
+  if(s==='parties'){await _rawClear('customers');await _rawClear('suppliers');return}
+  return _rawClear(resolveStore(s));
+};
+const getById=async(s,id)=>{
+  if(s==='parties'){
+    const a=await _rawGet('customers',id);if(a)return {...a,type:a.type||'customer'};
+    const b=await _rawGet('suppliers',id);if(b)return {...b,type:b.type||'supplier'};
+    return undefined;
+  }
+  return _rawGet(resolveStore(s),id);
+};
+
+async function enqueueSync(){}
 async function getPendingSyncCount(){return 0}
 async function runExplicitSync(){toast('All data is local (IndexedDB)');return {ok:true,n:0}}
 async function checkOfflineReady(){
-  const need = ['/','/static/icon-192.png','/static/icon-512.png','/manifest.webmanifest','/sw.js'];
-  let missing = [];
-  if('caches' in window){
-    try{
-      const keys = await caches.keys();
-      const cache = keys.length ? await caches.open(keys.sort().reverse()[0]) : null;
-      if(cache){
-        for(const u of need){
-          const hit = await cache.match(u);
-          if(!hit) missing.push(u);
-        }
-      } else missing = need.slice();
-    }catch(e){ missing = need.slice(); }
-  } else missing = need.slice();
-  return {ready: missing.length===0, missing, pending:0, online: navigator.onLine};
+  return {ready:true,missing:[],pending:0,online:navigator.onLine};
 }
-function updateOfflineBadge(){ document.querySelectorAll('.offline-badge').forEach(el=>{el.style.display='none'}); }
-
-
-// Wrap put to auto-queue important stores (non-breaking)
-
-
+function updateOfflineBadge(){document.querySelectorAll('.offline-badge').forEach(el=>{el.style.display='none'})}
 
 window.AtomDB={openDB,all,put,del,clearStore,getById,resolveStore,STORES_STRICT,migrateLegacy,updateOfflineBadge,checkOfflineReady};

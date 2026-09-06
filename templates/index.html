@@ -326,7 +326,7 @@ html,body{height:100%;margin:0}
         <button class="qa ex" id="btnEx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Expiry<span class="cnt" id="exCnt">0</span></button>
         <button class="qa st" id="btnStock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Stock alerts<span class="cnt" id="stockCnt">0</span></button>
       </div>
-      <section class="sec"><div class="sh"><h2>Recent bills</h2></div><input id="billSearch" placeholder="Search atom1, customer…" style="width:100%;margin:0 0 12px;padding:11px 14px;border:1px solid var(--bd,#e2e8f0);border-radius:12px;font-family:inherit;font-size:14px"><div class="txl" id="txList"><div class="empty">No recent transactions yet.</div></div></section>
+      <section class="sec"><div class="sh"><h2>Recent bills</h2></div><input id="billSearch" placeholder="Search" style="width:100%;margin:0 0 12px;padding:11px 14px;border:1px solid var(--bd,#e2e8f0);border-radius:12px;font-family:inherit;font-size:14px"><div class="txl" id="txList"><div class="empty">No recent transactions yet.</div></div></section>
     </div>
   </div>
   <div class="view" id="v-text">
@@ -469,13 +469,6 @@ html,body{height:100%;margin:0}
       <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:#64748b">GST</span><b id="coGst">₹0</b></div>
       <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:#64748b">Discount</span><b id="coDisc" style="color:#dc2626">− ₹0</b></div>
       <div style="display:flex;justify-content:space-between;font-weight:800;font-size:16px"><span>Total</span><span id="coTot" style="color:#4f46e5">₹0</span></div>
-      <div id="coRoundRow" style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:#64748b"><span>Rounding</span>
-        <select id="coRound" style="border:1px solid #e2e8f0;border-radius:8px;padding:4px 8px;font-family:inherit;font-weight:600">
-          <option value="none">None</option>
-          <option value="0.5">₹0.50</option>
-          <option value="1">₹1</option>
-        </select>
-      </div>
       <div id="coPartialRow" style="margin-top:10px">
         <label style="font-size:12px;font-weight:600;color:#64748b">Amount received (partial OK)</label>
         <input id="coReceived" type="number" min="0" step="0.01" placeholder="Full amount = paid" style="width:100%;margin-top:4px;padding:11px 12px;border:1px solid #e2e8f0;border-radius:10px;font-family:inherit;font-weight:700">
@@ -677,6 +670,41 @@ html,body{height:100%;margin:0}
         <button type="button" class="save" id="pr-stmtGo" style="margin-top:10px">Show statement</button>
       </div>
       <div id="pr-stmtBody" class="book-wrap"></div>
+    </div>
+
+    
+    <div class="panel-view" id="pr-viewCustomers">
+      <button type="button" class="backToHub" data-back="main" style="margin-bottom:12px;border:0;background:#f1f5f9;padding:8px 12px;border-radius:8px;font-weight:600;font-family:inherit">← Back</button>
+      <div class="af" style="background:#fff;border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:12px">
+        <div class="sec-title">Customers</div>
+        <input id="pr-custSearch" placeholder="Search name or phone" style="width:100%;padding:11px 14px;border:1px solid var(--bd);border-radius:12px;font-family:inherit;font-size:16px;margin-bottom:10px">
+        <div class="row2">
+          <div><label>Name *</label><input id="pr-custName" placeholder="Customer name"></div>
+          <div><label>Phone</label><input id="pr-custPhone" type="tel" placeholder="Mobile"></div>
+        </div>
+        <div class="row2">
+          <div><label>Opening udhaar (₹)</label><input id="pr-custBal" type="number" min="0" step="0.01" value="0"></div>
+          <div><label>Email</label><input id="pr-custEmail" type="email" placeholder="optional"></div>
+        </div>
+        <input type="hidden" id="pr-custEditId">
+        <button type="button" class="save" id="pr-custSave">Save customer</button>
+      </div>
+      <div id="pr-custList" class="book-wrap"></div>
+    </div>
+    <div class="panel-view" id="pr-viewSuppliers">
+      <button type="button" class="backToHub" data-back="main" style="margin-bottom:12px;border:0;background:#f1f5f9;padding:8px 12px;border-radius:8px;font-weight:600;font-family:inherit">← Back</button>
+      <div class="af" style="background:#fff;border-radius:16px;padding:16px;box-shadow:var(--sh);margin-bottom:12px">
+        <div class="sec-title">Suppliers</div>
+        <input id="pr-supSearch" placeholder="Search name or phone" style="width:100%;padding:11px 14px;border:1px solid var(--bd);border-radius:12px;font-family:inherit;font-size:16px;margin-bottom:10px">
+        <div class="row2">
+          <div><label>Name *</label><input id="pr-supName" placeholder="Supplier name"></div>
+          <div><label>Phone</label><input id="pr-supPhone" type="tel" placeholder="Mobile"></div>
+        </div>
+        <label>Note</label><input id="pr-supNote" placeholder="optional">
+        <input type="hidden" id="pr-supEditId">
+        <button type="button" class="save" id="pr-supSave">Save supplier</button>
+      </div>
+      <div id="pr-supList" class="book-wrap"></div>
     </div>
 
     <div class="panel-view" id="pr-viewReports">
@@ -1524,7 +1552,9 @@ $('#actSave').onclick=async()=>{
   const mode=$('#actMode')?.value||'cash';
   if(_actKind==='party'){
     if(!note)return toast('Name required');
-    await put('parties',{name:note,phone:String(amt||''),type:mode,balance:0});
+    const store=mode==='supplier'?'suppliers':'customers';
+    const pid=await put(store,{name:note,phone:String($('#actAmt')?.value||''),type:mode,balance:0});
+    if(pid==null){toast('Could not save');return}
     toast('Party saved');$('#actM').style.display='none';return;
   }
   if(_actKind==='expense'){
@@ -1689,7 +1719,7 @@ function refreshCoTotals(){
   return tot;
 }
 
-if($('#coRound')){$('#coRound').onchange=()=>{AtomPOS.setRoundMode($('#coRound').value);refreshCoTotals()};AtomPOS.getRoundMode().then(m=>{if($('#coRound'))$('#coRound').value=m})}
+;AtomPOS.getRoundMode().then(m=>{if($('#coRound'))$('#coRound').value=m})}
 if($('#coReceived')){$('#coReceived').oninput=()=>{$('#coReceived').dataset.touched='1';refreshCoTotals()}}
 function openCustSelect(){
   selectedCustomer=null;coDiscount=0;coCouponCode='';
@@ -1730,13 +1760,21 @@ if($('#coApplyCoupon'))$('#coApplyCoupon').onclick=async()=>{
 $('#coCustAdd').onclick=()=>{['ncName','ncPhone','ncEmail'].forEach(id=>$('#'+id).value='');$('#ncUdhaar').value='0';$('#coNewCustM').style.display='flex'};
 $('#coNewCustX').onclick=()=>{$('#coNewCustM').style.display='none'};
 $('#ncSave').onclick=async()=>{
-  const name=($('#ncName').value||'').trim();if(!name)return toast('Name required');
-  const id=await put('parties',{name,phone:($('#ncPhone').value||'').trim(),email:($('#ncEmail').value||'').trim(),balance:+$('#ncUdhaar').value||0,type:'customer'});
-  selectedCustomer=await getById('parties',id)||{id,name,phone:$('#ncPhone').value,balance:+$('#ncUdhaar').value||0};
-  $('#coNewCustM').style.display='none';
-  $('#coCustSearch').value=name;
-  $('#coCustSelected').textContent=name;
-  toast('Customer saved');
+  try{
+    const name=($('#ncName').value||'').trim();if(!name)return toast('Name required');
+    if(!db)await openDB();
+    const phone=(($('#ncPhone')&&$('#ncPhone').value)||'').trim();
+    const email=(($('#ncEmail')&&$('#ncEmail').value)||'').trim();
+    const balance=+(($('#ncUdhaar')&&$('#ncUdhaar').value)||0)||0;
+    const payload={name,phone,email,balance,type:'customer'};
+    const id=await put('customers',payload);
+    if(id==null){toast('Could not save customer');return}
+    selectedCustomer=await getById('customers',id)||{id,name,phone,balance,type:'customer'};
+    $('#coNewCustM').style.display='none';
+    if($('#coCustSelected'))$('#coCustSelected').textContent=name+(phone?(' · '+phone):'');
+    if($('#coCustSearch'))$('#coCustSearch').value=name;
+    toast('Customer saved');
+  }catch(err){console.error(err);toast('Save failed — data safe')}
 };
 
 let coPay='cash';
@@ -1871,20 +1909,35 @@ async function renderTx(){
   if(bq)list=list.filter(t=>String(t.billNo||'').toLowerCase().includes(bq)||String(t.title||'').toLowerCase().includes(bq)||String(t.id||'').toLowerCase().includes(bq));
   list=(list||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,30);
   if(!list.length){box.innerHTML='<div class="empty">No recent transactions yet.</div>';return}
+  function istStr(iso){
+    if(!iso)return '—';
+    try{
+      const d=new Date(iso);
+      return d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
+    }catch(e){return String(iso).slice(0,16).replace('T',' ')}
+  }
   box.innerHTML=list.map(t=>{
     const voided=t.status==='void';
     const badge=voided?'void':(t.status||'paid');
-    const badgeCls=voided?'unpaid':(t.status==='unpaid'||t.status==='partial'?'unpaid':'paid');
-    return `<div class="tx" data-id="${t.id}" style="${voided?"opacity:.55":""}">
-      <div class="txi cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg></div>
-      <div class="txb"><div class="txt">${t.billNo||t.id||''} · ${t.title||'Sale'}</div>
-      <div class="txs">${(t.date||'').slice(0,16).replace('T',' ')}</div>
-      <span class="badge ${badgeCls}">${badge}</span></div>
-      <div class="txr"><div class="txa">${fmt(t.amount)}</div>
-      <div style="display:flex;gap:4px;margin-top:4px;justify-content:flex-end">
+    const bill=(t.billNo||('#'+t.id));
+    const saleType=t.status==='unpaid'?'Credit':(t.status==='partial'?'Partial':((t.payMethod||'cash').toUpperCase()));
+    const when=istStr(t.date);
+    return `<div class="tx" style="opacity:${voided?'.55':'1'}">
+      <div class="tx-top" style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div class="tx-id" style="font-weight:800;font-size:15px">${bill}</div>
+          <div class="tx-meta" style="font-size:11px;color:#64748b;margin-top:2px">${when}</div>
+          <div style="font-size:11px;font-weight:700;color:#4f46e5;margin-top:2px">${saleType}${t.title&&t.title!=='Cash Sale'?' · '+t.title:''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="tx-amt" style="font-weight:800">${fmt(t.amount||0)}</div>
+          <span class="badge ${badge}" style="font-size:10px">${badge}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
         <button type="button" class="tx-reprint" data-id="${t.id}" style="border:0;background:#eef2ff;color:#4f46e5;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;font-family:inherit">Bill</button>
         ${voided?'':`<button type="button" class="tx-void" data-id="${t.id}" style="border:0;background:#fee2e2;color:#dc2626;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;font-family:inherit">Void</button>`}
-      </div></div>
+      </div>
     </div>`;
   }).join('');
   box.querySelectorAll('.tx-reprint').forEach(b=>b.onclick=async e=>{
@@ -1918,8 +1971,6 @@ async function renderExStCounts(){const list=await all('products');$('#exCnt').t
   }catch(e){console.error('init',e);if(typeof toast==='function')toast('Init error')}
 })();
 initShell(document.getElementById('root-billing'));
-
-};
 </script>
 <script>
 window.__panelInit.proprietor=function(){
@@ -1974,6 +2025,11 @@ function buildDrawer(){
      <div class="adm-sub" id="subProducts">
        <button type="button" id="navAddProd">Add Product</button>
        <button type="button" id="navProdMgmt">Product management</button>
+     </div>
+     <button type="button" class="adm-drop" id="navRelations">Relations${chev}</button>
+     <div class="adm-sub" id="subRelations">
+       <button type="button" id="navCustomers">Customers</button>
+       <button type="button" id="navSuppliers">Suppliers</button>
      </div>
      <button type="button" class="adm-drop" id="navSales">Sales${chev}</button>
      <div class="adm-sub" id="subSales">
@@ -2530,6 +2586,87 @@ async function renderCustomerStatement(partyId){
 $('#navInvoices')&&($('#navInvoices').onclick=()=>{showPropView('#pr-viewInvoices','Invoices','All bills');renderInvoices()});
 $('#navReturns')&&($('#navReturns').onclick=()=>{showPropView('#pr-viewReturns','Returns','Sales & purchase');renderReturns()});
 $('#navSales')&&($('#navSales').onclick=()=>{const sub=$('#subSales');const open=sub.classList.contains('show');$$('.adm-sub').forEach(s=>s.classList.remove('show'));$$('.adm-drop').forEach(b=>b.classList.remove('open'));if(!open){sub.classList.add('show');$('#navSales').classList.add('open')}});
+
+$('#navRelations')&&($('#navRelations').onclick=()=>{const sub=$('#subRelations');const open=sub.classList.contains('show');$$('.adm-sub').forEach(s=>s.classList.remove('show'));$$('.adm-drop').forEach(b=>b.classList.remove('open'));if(!open){sub.classList.add('show');$('#navRelations').classList.add('open')}});
+$('#navCustomers')&&($('#navCustomers').onclick=()=>{showPropView('#pr-viewCustomers','Customers','Outstanding · CRUD');renderCustomersCRUD()});
+$('#navSuppliers')&&($('#navSuppliers').onclick=()=>{showPropView('#pr-viewSuppliers','Suppliers','CRUD');renderSuppliersCRUD()});
+
+async function renderCustomersCRUD(){
+  const q=(($('#pr-custSearch')&&$('#pr-custSearch').value)||'').trim().toLowerCase();
+  let list=await all('customers');
+  if(q)list=list.filter(p=>(p.name||'').toLowerCase().includes(q)||String(p.phone||'').includes(q));
+  list=list.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const box=$('#pr-custList');
+  if(!box)return;
+  box.innerHTML=list.length?('<table><thead><tr><th>Name</th><th>Phone</th><th>Due</th><th></th></tr></thead><tbody>'+list.map(p=>`<tr>
+    <td>${p.name||''}</td><td>${p.phone||'—'}</td><td style="font-weight:700;color:${(p.balance||0)>0?'#d97706':'#059669'}">${fmt(p.balance||0)}</td>
+    <td style="white-space:nowrap">
+      <button type="button" data-edit="${p.id}" style="padding:6px 8px;border:0;border-radius:8px;background:#eef2ff;color:#4f46e5;font-weight:700;font-size:11px;font-family:inherit">Edit</button>
+      <button type="button" data-del="${p.id}" style="padding:6px 8px;border:0;border-radius:8px;background:#fee2e2;color:#dc2626;font-weight:700;font-size:11px;font-family:inherit">Del</button>
+    </td></tr>`).join('')+'</tbody></table>'):'<div class="empty" style="padding:16px">No customers</div>';
+  box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=async()=>{
+    const p=await getById('customers',+b.dataset.edit);if(!p)return;
+    $('#pr-custEditId').value=p.id;$('#pr-custName').value=p.name||'';$('#pr-custPhone').value=p.phone||'';
+    $('#pr-custEmail').value=p.email||'';$('#pr-custBal').value=p.balance||0;$('#pr-custSave').textContent='Update customer';
+  });
+  box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+    if(!(await appConfirm('Delete','Delete this customer?','Delete',true)))return;
+    await del('customers',+b.dataset.del);toast('Deleted');renderCustomersCRUD();
+  });
+}
+if($('#pr-custSearch'))$('#pr-custSearch').oninput=()=>renderCustomersCRUD();
+if($('#pr-custSave'))$('#pr-custSave').onclick=async()=>{
+  try{
+    const name=($('#pr-custName').value||'').trim();if(!name)return toast('Name required');
+    if(!db)await openDB();
+    const id=+$('#pr-custEditId').value||null;
+    const payload={name,phone:($('#pr-custPhone').value||'').trim(),email:($('#pr-custEmail').value||'').trim(),balance:+$('#pr-custBal').value||0,type:'customer'};
+    if(id)payload.id=id;
+    const rid=await put('customers',payload);
+    if(rid==null){toast('Save failed');return}
+    $('#pr-custEditId').value='';$('#pr-custName').value='';$('#pr-custPhone').value='';$('#pr-custEmail').value='';$('#pr-custBal').value='0';
+    $('#pr-custSave').textContent='Save customer';
+    toast(id?'Updated':'Saved');renderCustomersCRUD();
+  }catch(e){console.error(e);toast('Save failed — data safe')}
+};
+
+async function renderSuppliersCRUD(){
+  const q=(($('#pr-supSearch')&&$('#pr-supSearch').value)||'').trim().toLowerCase();
+  let list=await all('suppliers');
+  if(q)list=list.filter(p=>(p.name||'').toLowerCase().includes(q)||String(p.phone||'').includes(q));
+  const box=$('#pr-supList');if(!box)return;
+  box.innerHTML=list.length?('<table><thead><tr><th>Name</th><th>Phone</th><th>Note</th><th></th></tr></thead><tbody>'+list.map(p=>`<tr>
+    <td>${p.name||''}</td><td>${p.phone||'—'}</td><td>${p.note||'—'}</td>
+    <td style="white-space:nowrap">
+      <button type="button" data-edit="${p.id}" style="padding:6px 8px;border:0;border-radius:8px;background:#eef2ff;color:#4f46e5;font-weight:700;font-size:11px;font-family:inherit">Edit</button>
+      <button type="button" data-del="${p.id}" style="padding:6px 8px;border:0;border-radius:8px;background:#fee2e2;color:#dc2626;font-weight:700;font-size:11px;font-family:inherit">Del</button>
+    </td></tr>`).join('')+'</tbody></table>'):'<div class="empty" style="padding:16px">No suppliers</div>';
+  box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=async()=>{
+    const p=await getById('suppliers',+b.dataset.edit);if(!p)return;
+    $('#pr-supEditId').value=p.id;$('#pr-supName').value=p.name||'';$('#pr-supPhone').value=p.phone||'';$('#pr-supNote').value=p.note||'';
+    $('#pr-supSave').textContent='Update supplier';
+  });
+  box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+    if(!(await appConfirm('Delete','Delete this supplier?','Delete',true)))return;
+    await del('suppliers',+b.dataset.del);toast('Deleted');renderSuppliersCRUD();
+  });
+}
+if($('#pr-supSearch'))$('#pr-supSearch').oninput=()=>renderSuppliersCRUD();
+if($('#pr-supSave'))$('#pr-supSave').onclick=async()=>{
+  try{
+    const name=($('#pr-supName').value||'').trim();if(!name)return toast('Name required');
+    if(!db)await openDB();
+    const id=+$('#pr-supEditId').value||null;
+    const payload={name,phone:($('#pr-supPhone').value||'').trim(),note:($('#pr-supNote').value||'').trim(),type:'supplier',balance:0};
+    if(id)payload.id=id;
+    const rid=await put('suppliers',payload);
+    if(rid==null){toast('Save failed');return}
+    $('#pr-supEditId').value='';$('#pr-supName').value='';$('#pr-supPhone').value='';$('#pr-supNote').value='';
+    $('#pr-supSave').textContent='Save supplier';
+    toast(id?'Updated':'Saved');renderSuppliersCRUD();
+  }catch(e){console.error(e);toast('Save failed — data safe')}
+};
+
 
 /* shifts */
 async function renderShifts(){
