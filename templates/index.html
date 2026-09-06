@@ -1250,8 +1250,7 @@ async function showPanel(name){
   });
   document.querySelectorAll('.dr.on,.ov.on,.sheet.on,.sheet-ov.on').forEach(function(el){el.classList.remove('on')});
   if(!window.__panelInited[name] && window.__panelInit && window.__panelInit[name]){
-    window.__panelInited[name]=true;
-    try{window.__panelInit[name]()}catch(err){console.error('init',name,err)}
+    try{window.__panelInit[name]();window.__panelInited[name]=true}catch(err){console.error('init',name,err);if(typeof toast==='function')toast(name+' init failed')}
   }
 }
 window.addEventListener('popstate',function(ev){
@@ -1701,9 +1700,7 @@ function cartSubGst(){
 }
 function refreshCoTotals(){
   const {sub,gst,gross}=cartSubGst();
-  const mode=($('#coRound')&&$('#coRound').value)||'none';
-  const raw=Math.max(0,gross-coDiscount);
-  const tot=AtomPOS.applyRound(raw, mode);
+  const tot=Math.max(0,gross-coDiscount);
   if($('#coSub'))$('#coSub').textContent=fmt(sub);
   if($('#coGst'))$('#coGst').textContent=fmt(gst);
   if($('#coDisc'))$('#coDisc').textContent='− '+fmt(coDiscount);
@@ -1719,7 +1716,7 @@ function refreshCoTotals(){
   return tot;
 }
 
-;AtomPOS.getRoundMode().then(m=>{if($('#coRound'))$('#coRound').value=m})}
+
 if($('#coReceived')){$('#coReceived').oninput=()=>{$('#coReceived').dataset.touched='1';refreshCoTotals()}}
 function openCustSelect(){
   selectedCustomer=null;coDiscount=0;coCouponCode='';
@@ -1797,10 +1794,10 @@ $('#coCustNext').onclick=async()=>{
   const {sub,gst,gross}=cartSubGst();
   const mode=($('#coRound')&&$('#coRound').value)||'none';
   const raw=Math.max(0,gross-coDiscount);
-  const total=AtomPOS.applyRound(raw, mode);
+  const total=Math.max(0, raw);
   const roundAdj=Math.round((total-raw)*100)/100;
   const title=selectedCustomer?(selectedCustomer.name||'Customer'):'Cash Sale';
-  const billNo=await AtomPOS.nextBillNo();
+  const billNo=(typeof AtomPOS!=='undefined'&&AtomPOS.nextBillNo)?await AtomPOS.nextBillNo():('atom'+Date.now().toString().slice(-6));
   const id='TX'+Date.now();
   let received=total;
   const recvRaw=$('#coReceived')&&$('#coReceived').value;
@@ -1948,29 +1945,47 @@ async function renderTx(){
   box.querySelectorAll('.tx-void').forEach(b=>b.onclick=async e=>{
     e.stopPropagation();
     const t=list.find(x=>String(x.id)===String(b.dataset.id));
-    if(t&&await AtomPOS.voidSale(t)){await renderTx();await renderExStCounts()}
+    if(t&&typeof AtomPOS!=='undefined'&&AtomPOS.voidSale&&await AtomPOS.voidSale(t)){await renderTx();await renderExStCounts()}
   });
 }
 if($('#billSearch')&&!$('#billSearch').dataset.bound){$('#billSearch').dataset.bound='1';$('#billSearch').oninput=()=>renderTx()}
-async function renderExStCounts(){const list=await all('products');$('#exCnt').textContent=list.filter(isExpiringSoon).length;const out=list.filter(p=>(p.stock||0)<=0).length;const low=list.filter(p=>{const m=+p.minStock||0;return m>0&&(p.stock||0)>0&&(p.stock||0)<=m}).length;if($('#stockCnt'))$('#stockCnt').textContent=out+low;if($('#stCnt'))$('#stCnt').textContent=out;if($('#lowCnt'))$('#lowCnt').textContent=low}
+async function renderExStCounts(){
+  try{
+    const list=await all('products');
+    const ex=list.filter(isExpiringSoon).length;
+    const out=list.filter(p=>(p.stock||0)<=0).length;
+    const low=list.filter(p=>{const m=+p.minStock||0;return m>0&&(p.stock||0)>0&&(p.stock||0)<=m}).length;
+    if($('#exCnt'))$('#exCnt').textContent=ex;
+    if($('#stockCnt'))$('#stockCnt').textContent=out+low;
+    if($('#stCnt'))$('#stCnt').textContent=out;
+    if($('#lowCnt'))$('#lowCnt').textContent=low;
+  }catch(e){console.warn('renderExStCounts',e)}
+}
 
 (async()=>{
   try{
-  await openDB();logSession('billing');
-  await renderTx();await renderExStCounts();renderCartBar();
-  try{
-    const ex=JSON.parse(localStorage.getItem('atom_export_cart')||'[]');
-    if(ex&&ex.length){
-      ex.forEach(it=>{cart.push({id:it.id||('c'+Date.now()),name:it.name||'Item',price:+it.price||0,qty:+it.qty||1})});
-      localStorage.removeItem('atom_export_cart');
-      renderCartBar();
-      if(location.hash==='#cart')showView('cart');
-      toast('Cart imported from calculator');
-    }else if(location.hash==='#cart')showView('cart');
-  }catch(e){console.error(e)}
-  }catch(e){console.error('init',e);if(typeof toast==='function')toast('Init error')}
+    if(typeof openDB==='function') await openDB();
+    if(typeof logSession==='function') try{logSession('billing')}catch(_e){}
+    try{if(typeof renderTx==='function') await renderTx()}catch(e){console.warn('renderTx',e)}
+    try{if(typeof renderExStCounts==='function') await renderExStCounts()}catch(e){console.warn('counts',e)}
+    try{if(typeof renderCartBar==='function') renderCartBar()}catch(e){console.warn('cartBar',e)}
+    try{
+      const ex=JSON.parse(localStorage.getItem('atom_export_cart')||'[]');
+      if(ex&&ex.length){
+        ex.forEach(it=>{cart.push({id:it.id||('c'+Date.now()),name:it.name||'Item',price:+it.price||0,qty:+it.qty||1})});
+        localStorage.removeItem('atom_export_cart');
+        renderCartBar();
+        if(location.hash==='#cart'&&typeof showView==='function')showView('cart');
+        toast('Cart imported from calculator');
+      }else if(location.hash==='#cart'&&typeof showView==='function')showView('cart');
+    }catch(e){console.warn('cart import',e)}
+  }catch(e){
+    console.error('init',e);
+    if(typeof toast==='function') toast('Init: '+(e&&e.message?e.message:'error'));
+  }
 })();
 initShell(document.getElementById('root-billing'));
+}; // end __panelInit.billing
 </script>
 <script>
 window.__panelInit.proprietor=function(){
@@ -2762,7 +2777,7 @@ async function downloadSheet(rows,name){
 $('#pr-btnExportProdXlsx').onclick=async()=>{const list=await all('products');await downloadSheet(list.map(p=>({name:p.name,price:p.price,cost:p.cost,stock:p.stock,minStock:p.minStock,tax:p.tax,unit:p.unit,cat:p.cat,sku:p.sku,barcode:p.barcode,hsn:p.hsn,expiry:p.expiry})),'atom-products.xlsx');toast('Exported products')};
 $('#pr-btnExportClientXlsx').onclick=async()=>{const list=(await all('parties')).filter(p=>(p.type||'customer')!=='supplier');await downloadSheet(list.map(p=>({name:p.name,phone:p.phone,email:p.email,address:p.address,balance:p.balance})),'atom-clients.xlsx');toast('Exported clients')};
 
-(async()=>{await openDB();logSession('proprietor');await refresh()})();
+(async()=>{try{if(typeof openDB==='function')await openDB();if(typeof logSession==='function')logSession('proprietor');if(typeof refresh==='function')await refresh()}catch(e){console.error('prop init',e)}})();
 initShell(document.getElementById('root-proprietor'));
 
 };
@@ -2858,7 +2873,7 @@ async function showBook(b){
   }
 }
 $$('#ac-tabs button').forEach(b=>b.onclick=()=>showBook(b.dataset.b));
-(async()=>{await openDB();logSession('accountant');showBook('pl')})();
+(async()=>{try{if(typeof openDB==='function')await openDB();if(typeof logSession==='function')logSession('accountant');if(typeof showBook==='function')showBook('pl')}catch(e){console.error('ac init',e)}})();
 initShell(document.getElementById('root-accountant'));
 
 };
@@ -3043,8 +3058,7 @@ document.addEventListener('keydown',e=>{
 (function(){
   var p0=location.pathname.replace(/^\//,'')||'billing';
   var start=['billing','proprietor','accountant','calculator'].indexOf(p0)>=0?p0:'billing';
-  window.__panelInited.billing=true;
-  try{window.__panelInit.billing()}catch(e){console.error(e)}
+  try{window.__panelInit.billing();window.__panelInited.billing=true}catch(e){console.error('billing init',e);if(typeof toast==='function')toast('Billing init failed')}
   try{if(typeof updateOfflineBadge==='function')setTimeout(updateOfflineBadge,500)}catch(e){}
   if(start!=='billing') showPanel(start);
   else try{history.replaceState({panel:'billing'},'',location.pathname||'/')}catch(e){}
